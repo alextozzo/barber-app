@@ -1,0 +1,74 @@
+.barber-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.barber-avatar {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin-bottom: 20px;
+}
+
+.barber-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  filter: grayscale(15%);
+}
+
+.gold-border {
+  position: absolute;
+  inset: -8px;
+  border: 2px solid var(--gold);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.barber-info h3 {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.barber-title {
+  color: var(--gold);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--cream);
+  margin-bottom: 16px;
+}
+
+.reviews { color: var(--muted); font-size: 12px; }
+
+.specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.tag {
+  background: rgba(201, 169, 97, 0.1);
+  color: var(--gold);
+  border: 1px solid rgba(201, 169, 97, 0.3);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.btn-primary.full { width: 100%; }

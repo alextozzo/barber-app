@@ -3,13 +3,13 @@ import { useParams, Link } from 'react-router-dom';
 import { db, auth } from '../firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Store, Star, Clock, Scissors } from 'lucide-react';
+import { Store, Star } from 'lucide-react';
 import BookingModal from '../components/BookingModal';
 import LoginModal from '../components/LoginModal';
 import './Loja.css';
 
 export default function Loja() {
-  const { slug } = useParams(); // Pega o link (ex: rafael-andrade)
+  const { slug } = useParams(); 
   const [loja, setLoja] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
@@ -17,7 +17,6 @@ export default function Loja() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [user, setUser] = useState(undefined);
 
-  // Verifica o login do cliente
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -25,7 +24,6 @@ export default function Loja() {
     return () => unsubscribe();
   }, []);
 
-  // Busca a loja pelo link (slug) no Firebase
   useEffect(() => {
     async function buscarLoja() {
       try {
@@ -52,7 +50,6 @@ export default function Loja() {
   if (erro) return <div style={{ padding: '50px', textAlign: 'center', color: 'var(--danger)' }}>{erro}</div>;
   if (!loja) return null;
 
-  // Aqui montamos o "barbeiro" falso que o BookingModal espera
   const barbeiro = {
     id: loja.donoId,
     name: loja.nome,
@@ -61,8 +58,10 @@ export default function Loja() {
     rating: 5.0,
     reviews: 0,
     specialties: ['Corte', 'Barba'],
-    horarios: loja.horarios || ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00'],
-    dias: loja.dias || [1, 2, 3, 4, 5, 6] // Segunda a sábado
+    abertura: loja.abertura || '09:00',
+    fechamento: loja.fechamento || '19:00',
+    almocoInicio: loja.almocoInicio || '12:00',
+    almocoFim: loja.almocoFim || '13:00'
   };
 
   return (
@@ -106,6 +105,18 @@ export default function Loja() {
           <h2>Serviços Disponíveis</h2>
           <p style={{ color: 'var(--muted)' }}>Clique em agendar para escolher o serviço, data e horário.</p>
         </div>
+
+        {/* BANNER DE MARKETING PARA NOVOS BARBEIROS */}
+        <div className="banner-marketing card">
+          <div className="banner-content">
+            <h3>Você também é barbeiro?</h3>
+            <p>Crie sua página exclusiva, receba agendamentos no WhatsApp e fidelize seus clientes.</p>
+          </div>
+          <a href="/planos" className="btn-primary">
+            Criar Minha Loja Grátis
+          </a>
+        </div>
+
       </main>
 
       {selectedBarber && (

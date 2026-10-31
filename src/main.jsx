@@ -6,7 +6,9 @@ import Dashboard from './pages/Dashboard.jsx'
 import Servicos from './pages/Servicos.jsx'
 import SuperAdmin from './pages/SuperAdmin.jsx'
 import CriarLoja from './pages/CriarLoja.jsx'
-import Loja from './pages/Loja.jsx' // <-- IMPORT DA PÁGINA DA LOJA
+import Loja from './pages/Loja.jsx' 
+import Planos from './pages/Planos.jsx'
+import Fidelidade from './pages/Fidelidade.jsx' // <-- NOVO IMPORT AQUI
 import Layout from './components/Layout.jsx'
 import './index.css'
 
@@ -16,6 +18,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <Routes>
         {/* Rota pública principal */}
         <Route path="/" element={<Home />} />
+
+        {/* Página de Planos */}
+        <Route path="/planos" element={<Planos />} /> 
 
         {/* Rota para o barbeiro criar/editar a loja */}
         <Route path="/criar-loja" element={<CriarLoja />} />
@@ -27,6 +32,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route element={<Layout />}>
           <Route path="/painel" element={<Dashboard />} />
           <Route path="/servicos" element={<Servicos />} />
+          <Route path="/fidelidade" element={<Fidelidade />} /> {/* <-- NOVA ROTA AQUI */}
         </Route>
 
         {/* ROTA DINÂMICA: O link único do barbeiro (ex: /rafael-andrade) */}

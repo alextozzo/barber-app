@@ -1,9 +1,9 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LogOut, Calendar, DollarSign, Users, Scissors } from 'lucide-react';
+import { LogOut, Calendar, DollarSign, Users, Scissors, Award } from 'lucide-react'; // Adicionado Award aqui
 import './Layout.css';
 
 export default function Layout() {
-  const location = useLocation(); // Descobre em qual página estamos
+  const location = useLocation(); 
 
   return (
     <div className="dashboard-container">
@@ -16,6 +16,12 @@ export default function Layout() {
           <Link to="/servicos" className={location.pathname === '/servicos' ? 'active' : ''}>
             <Scissors size={18} /> Serviços
           </Link>
+          
+          {/* NOVO LINK: Fidelidade */}
+          <Link to="/fidelidade" className={location.pathname === '/fidelidade' ? 'active' : ''}>
+            <Award size={18} /> Fidelidade
+          </Link>
+
           <a href="#"><Users size={18} /> Clientes</a>
           <a href="#"><DollarSign size={18} /> Financeiro</a>
         </nav>
@@ -25,7 +31,6 @@ export default function Layout() {
       </aside>
 
       <main className="dashboard-content">
-        {/* O Outlet é onde a página (Dashboard ou Serviços) vai aparecer */}
         <Outlet />
       </main>
     </div>

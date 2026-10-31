@@ -46,4 +46,34 @@
 
 @media (max-width: 768px) {
   .loja-header { flex-direction: column; text-align: center; }
+}/* Banner de Marketing */
+.banner-marketing {
+  margin-top: 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32px;
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(201, 169, 97, 0.05) 100%);
+  border: 1px dashed var(--gold);
+  border-radius: 8px;
+}
+
+.banner-content h3 {
+  font-size: 20px;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+
+.banner-content p {
+  color: var(--muted);
+  font-size: 14px;
+  max-width: 500px;
+}
+
+@media (max-width: 768px) {
+  .banner-marketing {
+    flex-direction: column;
+    text-align: center;
+    gap: 20px;
+  }
 }

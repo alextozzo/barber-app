@@ -8,6 +8,7 @@ import './LoginModal.css';
 export default function LoginModal({ onClose }) {
   const [mode, setMode] = useState('login');
   const [nome, setNome] = useState('');
+  const [telefone, setTelefone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [erro, setErro] = useState('');
@@ -26,9 +27,10 @@ export default function LoginModal({ onClose }) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         // Salva o nome no perfil do usuário
         await updateProfile(userCredential.user, { displayName: nome });
-        // Salva os dados no banco de dados
+        // Salva os dados no banco de dados (incluindo o telefone)
         await setDoc(doc(db, "clientes", userCredential.user.uid), {
           nome: nome,
+          telefone: telefone,
           email: email,
           criadoEm: new Date()
         });
@@ -60,10 +62,22 @@ export default function LoginModal({ onClose }) {
         
         <form onSubmit={handleSubmit}>
           {mode === 'register' && (
-            <div className="field">
-              <label>Nome Completo</label>
-              <input type="text" value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome" required />
-            </div>
+            <>
+              <div className="field">
+                <label>Nome Completo</label>
+                <input type="text" value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome" required />
+              </div>
+              <div className="field">
+                <label>Telefone (WhatsApp)</label>
+                <input 
+                  type="tel" 
+                  value={telefone} 
+                  onChange={e => setTelefone(e.target.value)} 
+                  placeholder="(11) 99999-9999" 
+                  required 
+                />
+              </div>
+            </>
           )}
 
           <div className="field">

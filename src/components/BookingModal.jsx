@@ -2,18 +2,22 @@ import { X, Clock, Check, Lock } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import './BookingModal.css';
 
 export default function BookingModal({ barber, onClose, onAskLogin }) {
   const [step, setStep] = useState(1);
+  const [services, setServices] = useState([]);
   const [selectedService, setSelectedService] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   
-  // Começa como undefined para sabermos que ainda não checou
   const [user, setUser] = useState(undefined); 
   const [salvando, setSalvando] = useState(false);
+  const [carregandoServicos, setCarregandoServicos] = useState(true);
+  
+  // NOVO: Estado para guardar os horários que já estão ocupados
+  const [horariosOcupados, setHorariosOcupados] = useState([]); 
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -22,12 +26,56 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
     return () => unsubscribe();
   }, []);
 
-  const services = [
-    { id: 1, name: 'Corte Clássico', duration: 30, price: 60 },
-    { id: 2, name: 'Corte + Barba', duration: 60, price: 100 },
-    { id: 3, name: 'Barba Terapia', duration: 45, price: 70 },
-    { id: 4, name: 'Degradê Premium', duration: 40, price: 80 },
-  ];
+  // Puxa os serviços do barbeiro
+  useEffect(() => {
+    async function fetchServicos() {
+      if (!barber.id) return;
+      try {
+        const q = query(collection(db, "servicos"), where("barbeiroId", "==", barber.id.toString()));
+        const querySnapshot = await getDocs(q);
+        const lista = [];
+        querySnapshot.forEach((doc) => {
+          lista.push({ id: doc.id, ...doc.data() });
+        });
+        setServices(lista);
+      } catch (error) {
+        console.error("Erro ao buscar serviços:", error);
+      } finally {
+        setCarregandoServicos(false);
+      }
+    }
+    fetchServicos();
+  }, [barber.id]);
+
+  // NOVO: Busca os horários ocupados quando o cliente escolhe uma data
+  useEffect(() => {
+    async function buscarHorariosOcupados() {
+      if (!selectedDate || !barber.id) return;
+
+      const dataFormatada = selectedDate.toLocaleDateString('pt-BR');
+      
+      try {
+        const q = query(
+          collection(db, "agendamentos"), 
+          where("barbeiroId", "==", barber.id.toString()),
+          where("data", "==", dataFormatada)
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const ocupados = [];
+        querySnapshot.forEach((doc) => {
+          // Se o agendamento não foi cancelado, o horário está ocupado
+          if (doc.data().status !== 'cancelado') {
+            ocupados.push(doc.data().horario);
+          }
+        });
+        setHorariosOcupados(ocupados);
+      } catch (error) {
+        console.error("Erro ao buscar horários:", error);
+      }
+    }
+    buscarHorariosOcupados();
+  }, [selectedDate, barber.id]);
 
   const dates = generateDates();
   const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
@@ -44,20 +92,36 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
 
   async function confirm() {
     if (!auth.currentUser) {
-      alert('⚠️ Você precisa estar logado!');
+      alert('⚠️ Você precisa estar logado para agendar!');
+      return;
+    }
+
+    // Verificação final de segurança (caso alguém tenha agendado enquanto ele escolhia)
+    if (horariosOcupados.includes(selectedTime)) {
+      alert('⚠️ Este horário acabou de ser ocupado por outra pessoa. Escolha outro.');
+      setStep(2); // Volta para a tela de escolher horário
       return;
     }
 
     setSalvando(true);
     try {
+      const clienteRef = doc(db, "clientes", auth.currentUser.uid);
+      const clienteSnap = await getDoc(clienteRef);
+      
+      let telefoneCliente = "";
+      if (clienteSnap.exists()) {
+        telefoneCliente = clienteSnap.data().telefone;
+      }
+
       await addDoc(collection(db, "agendamentos"), {
         clienteId: auth.currentUser.uid,
         clienteNome: auth.currentUser.displayName || "Cliente",
         clienteEmail: auth.currentUser.email,
+        clienteTelefone: telefoneCliente,
         barbeiroId: barber.id,
         barbeiroNome: barber.name,
-        servico: selectedService.name,
-        preco: selectedService.price,
+        servico: selectedService.nome,
+        preco: selectedService.preco,
         data: selectedDate.toLocaleDateString('pt-BR'),
         horario: selectedTime,
         status: 'confirmado',
@@ -68,13 +132,12 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
       onClose();
     } catch (error) {
       console.error("Erro ao salvar:", error);
-      alert('Erro ao salvar. Tente novamente.');
+      alert('Erro ao salvar o agendamento. Tente novamente.');
     } finally {
       setSalvando(false);
     }
   }
 
-  // 1. Enquanto verifica no Firebase, mostra um "Carregando"
   if (user === undefined) {
     return (
       <div className="modal-overlay">
@@ -85,7 +148,6 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
     );
   }
 
-  // 2. Se não estiver logado, mostra a tela de bloqueio
   if (user === null) {
     return (
       <div className="modal-overlay" onClick={onClose}>
@@ -97,10 +159,7 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
             <p style={{ color: 'var(--muted)', marginBottom: '30px' }}>
               Para agendar seu horário com <strong>{barber.name}</strong>, você precisa entrar na sua conta.
             </p>
-            <button 
-              className="btn-primary full" 
-              onClick={() => { onClose(); if(onAskLogin) onAskLogin(); }}
-            >
+            <button className="btn-primary full" onClick={() => { onClose(); if(onAskLogin) onAskLogin(); }}>
               Fazer Login Agora
             </button>
           </div>
@@ -109,7 +168,6 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
     );
   }
 
-  // 3. Se estiver logado, mostra o fluxo normal
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -128,21 +186,28 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
           ))}
         </div>
 
-        {/* RESTO DO CÓDIGO (Passos 1, 2 e 3) */}
         {step === 1 && (
           <div>
             <h3 className="step-title">1. Escolha o serviço</h3>
-            <div className="service-list">
-              {services.map(s => (
-                <div key={s.id} className={`service-item ${selectedService?.id === s.id ? 'selected' : ''}`} onClick={() => setSelectedService(s)}>
-                  <div>
-                    <h4>{s.name}</h4>
-                    <span className="duration"><Clock size={12} /> {s.duration} min</span>
+            
+            {carregandoServicos ? (
+              <p style={{ color: 'var(--muted)' }}>Carregando serviços...</p>
+            ) : services.length === 0 ? (
+              <p style={{ color: 'var(--danger)' }}>Este barbeiro ainda não cadastrou serviços.</p>
+            ) : (
+              <div className="service-list">
+                {services.map(s => (
+                  <div key={s.id} className={`service-item ${selectedService?.id === s.id ? 'selected' : ''}`} onClick={() => setSelectedService(s)}>
+                    <div>
+                      <h4>{s.nome}</h4>
+                      <span className="duration"><Clock size={12} /> {s.duracao} min</span>
+                    </div>
+                    <span className="price">R$ {s.preco}</span>
                   </div>
-                  <span className="price">R$ {s.price}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+            
             <button className="btn-primary full" disabled={!selectedService} onClick={() => setStep(2)}>Continuar</button>
           </div>
         )}
@@ -159,13 +224,24 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
               ))}
             </div>
             <div className="time-grid">
-              {times.map(t => (
-                <button key={t} className={`time-btn ${selectedTime === t ? 'active' : ''}`} onClick={() => setSelectedTime(t)}>{t}</button>
-              ))}
+              {times.map(t => {
+                const isOcupado = horariosOcupados.includes(t);
+                return (
+                  <button 
+                    key={t} 
+                    className={`time-btn ${selectedTime === t ? 'active' : ''}`} 
+                    onClick={() => setSelectedTime(t)}
+                    disabled={isOcupado} // Desabilita se estiver ocupado
+                    style={isOcupado ? { opacity: 0.3, textDecoration: 'line-through', cursor: 'not-allowed' } : {}}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
             </div>
             <div className="button-row">
               <button className="btn-outline" onClick={() => setStep(1)}>Voltar</button>
-              <button className="btn-primary" disabled={!selectedDate || !selectedTime} onClick={() => setStep(3)}>Continuar</button>
+              <button className="btn-primary" disabled={!selectedDate || !selectedTime || horariosOcupados.includes(selectedTime)} onClick={() => setStep(3)}>Continuar</button>
             </div>
           </div>
         )}
@@ -175,10 +251,10 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
             <h3 className="step-title">3. Confirmar agendamento</h3>
             <div className="summary">
               <div className="summary-row"><span>Barbeiro</span><strong>{barber.name}</strong></div>
-              <div className="summary-row"><span>Serviço</span><strong>{selectedService.name}</strong></div>
+              <div className="summary-row"><span>Serviço</span><strong>{selectedService.nome}</strong></div>
               <div className="summary-row"><span>Data</span><strong>{selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</strong></div>
               <div className="summary-row"><span>Horário</span><strong>{selectedTime}</strong></div>
-              <div className="summary-row total"><span>Total</span><strong>R$ {selectedService.price},00</strong></div>
+              <div className="summary-row total"><span>Total</span><strong>R$ {selectedService.preco},00</strong></div>
             </div>
             <div className="button-row">
               <button className="btn-outline" onClick={() => setStep(2)}>Voltar</button>

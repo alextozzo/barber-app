@@ -11,7 +11,7 @@ export default function Home() {
 
   const barbers = [
     {
-      id: 1,
+       id: "dDAwJbzmO8VG0VgvFaJl3cojwHP2",
       name: 'Rafael Andrade',
       title: 'Master Barber',
       photo: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=400',

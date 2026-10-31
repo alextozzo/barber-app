@@ -1,36 +1,70 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, Clock, DollarSign } from 'lucide-react';
+import { db, auth } from '../firebase';
+import { collection, addDoc, onSnapshot, query, where, deleteDoc, doc } from 'firebase/firestore';
 import './Servicos.css';
 
 export default function Servicos() {
-  const [servicos, setServicos] = useState([
-    { id: 1, nome: 'Corte Clássico', duracao: 30, preco: 60 },
-    { id: 2, nome: 'Corte + Barba', duracao: 60, preco: 100 },
-  ]);
-
+  const [servicos, setServicos] = useState([]);
   const [novoNome, setNovoNome] = useState('');
   const [novaDuracao, setNovaDuracao] = useState('');
   const [novoPreco, setNovoPreco] = useState('');
+  const [carregando, setCarregando] = useState(true);
 
-  function adicionarServico(e) {
+  // Puxa os serviços do barbeiro logado em tempo real
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    const q = query(
+      collection(db, "servicos"), 
+      where("barbeiroId", "==", auth.currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const lista = [];
+      snapshot.forEach((doc) => {
+        lista.push({ id: doc.id, ...doc.data() });
+      });
+      setServicos(lista);
+      setCarregando(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  async function adicionarServico(e) {
     e.preventDefault();
-    if (!novoNome || !novaDuracao || !novoPreco) return;
+    if (!novoNome || !novaDuracao || !novoPreco || !auth.currentUser) return;
 
-    const novo = {
-      id: Date.now(),
-      nome: novoNome,
-      duracao: Number(novaDuracao),
-      preco: Number(novoPreco),
-    };
+    try {
+      await addDoc(collection(db, "servicos"), {
+        barbeiroId: auth.currentUser.uid,
+        nome: novoNome,
+        duracao: Number(novaDuracao),
+        preco: Number(novoPreco),
+      });
 
-    setServicos([...servicos, novo]);
-    setNovoNome('');
-    setNovaDuracao('');
-    setNovoPreco('');
+      setNovoNome('');
+      setNovaDuracao('');
+      setNovoPreco('');
+    } catch (error) {
+      console.error("Erro ao adicionar:", error);
+      alert("Erro ao salvar o serviço.");
+    }
   }
 
-  function removerServico(id) {
-    setServicos(servicos.filter(s => s.id !== id));
+  async function removerServico(id) {
+    if (!window.confirm("Tem certeza que deseja remover este serviço?")) return;
+    
+    try {
+      await deleteDoc(doc(db, "servicos", id));
+    } catch (error) {
+      console.error("Erro ao remover:", error);
+    }
+  }
+
+  if (!auth.currentUser) {
+    return <p style={{ color: 'var(--gold)' }}>Faça login para gerenciar seus serviços.</p>;
   }
 
   return (
@@ -54,6 +88,7 @@ export default function Servicos() {
               placeholder="Ex: Degradê Premium" 
               value={novoNome}
               onChange={e => setNovoNome(e.target.value)}
+              required
             />
           </div>
 
@@ -65,6 +100,7 @@ export default function Servicos() {
                 placeholder="30" 
                 value={novaDuracao}
                 onChange={e => setNovaDuracao(e.target.value)}
+                required
               />
             </div>
             <div className="input-group">
@@ -74,6 +110,7 @@ export default function Servicos() {
                 placeholder="60" 
                 value={novoPreco}
                 onChange={e => setNovoPreco(e.target.value)}
+                required
               />
             </div>
           </div>
@@ -86,28 +123,31 @@ export default function Servicos() {
         {/* LISTA DE SERVIÇOS */}
         <div className="lista-servicos">
           <h3>Serviços Cadastrados</h3>
-          {servicos.length === 0 && (
-            <p className="empty-msg">Nenhum serviço cadastrado ainda.</p>
-          )}
           
-          {servicos.map(servico => (
-            <div key={servico.id} className="servico-item card">
-              <div className="servico-info">
-                <h4>{servico.nome}</h4>
-                <div className="servico-detalhes">
-                  <span><Clock size={14} /> {servico.duracao} min</span>
-                  <span className="preco"><DollarSign size={14} /> R$ {servico.preco},00</span>
+          {carregando ? (
+            <p className="empty-msg">Carregando serviços...</p>
+          ) : servicos.length === 0 ? (
+            <p className="empty-msg">Nenhum serviço cadastrado ainda.</p>
+          ) : (
+            servicos.map(servico => (
+              <div key={servico.id} className="servico-item card">
+                <div className="servico-info">
+                  <h4>{servico.nome}</h4>
+                  <div className="servico-detalhes">
+                    <span><Clock size={14} /> {servico.duracao} min</span>
+                    <span className="preco"><DollarSign size={14} /> R$ {servico.preco},00</span>
+                  </div>
                 </div>
+                <button 
+                  className="btn-delete" 
+                  onClick={() => removerServico(servico.id)}
+                  title="Remover serviço"
+                >
+                  <Trash2 size={18} />
+                </button>
               </div>
-              <button 
-                className="btn-delete" 
-                onClick={() => removerServico(servico.id)}
-                title="Remover serviço"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>

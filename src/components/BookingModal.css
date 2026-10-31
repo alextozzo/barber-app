@@ -172,3 +172,10 @@
 
 .button-row { display: flex; gap: 12px; justify-content: space-between; }
 .btn-primary:disabled, .btn-outline:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+.time-btn:disabled {
+  opacity: 0.3;
+  text-decoration: line-through;
+  cursor: not-allowed;
+  border-color: var(--danger);
+  color: var(--danger);
+}

@@ -1,0 +1,82 @@
+.criar-loja-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg-primary);
+}
+
+.criar-loja-card {
+  max-width: 500px;
+  width: 100%;
+  padding: 40px;
+}
+
+.header-logo {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.header-logo h2 {
+  font-size: 28px;
+  margin: 16px 0 8px;
+}
+
+.header-logo p {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.input-group input {
+  width: 100%;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px;
+  color: var(--cream);
+  font-family: 'Poppins', sans-serif;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.slug-input-group {
+  display: flex;
+  align-items: center;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.slug-prefix {
+  background: rgba(255,255,255,0.05);
+  padding: 14px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  border-right: 1px solid var(--border);
+}
+
+.slug-input-group input {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}

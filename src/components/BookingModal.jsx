@@ -13,6 +13,7 @@ export default function BookingModal({ barber, onClose }) {
   const [user, setUser] = useState(null);
   const [salvando, setSalvando] = useState(false);
 
+  // Verifica se o usuário está logado
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -48,7 +49,6 @@ export default function BookingModal({ barber, onClose }) {
 
     setSalvando(true);
     try {
-      // Salvando no Firestore (banco de dados)
       await addDoc(collection(db, "agendamentos"), {
         clienteId: auth.currentUser.uid,
         clienteNome: auth.currentUser.displayName || "Cliente sem nome",
@@ -73,7 +73,7 @@ export default function BookingModal({ barber, onClose }) {
     }
   }
 
-  // Se o usuário não estiver logado, mostra uma tela bloqueando o agendamento
+  // TRAVA DE SEGURANÇA: Se não estiver logado, impede o agendamento
   if (!user) {
     return (
       <div className="modal-overlay" onClick={onClose}>
@@ -98,16 +98,14 @@ export default function BookingModal({ barber, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      {/* ... (O resto do JSX do passo 1, 2 e 3 é o mesmo que você já tem, mas no final, o botão fica: ) */}
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}><X size={22} /></button>
-        
+
         <header className="modal-header">
           <h2>Agendar com {barber.name}</h2>
-          <p>Olá, {user.displayName || user.email}!</p> {/* Mostra o nome do cliente */}
+          <p>Olá, {user.displayName || user.email}!</p>
         </header>
 
-        {/* ... (MANTENHA O CÓDIGO DOS PASSOS 1, 2 E 3 AQUI, EXATAMENTE COMO ESTAVA) ... */}
         <div className="steps">
           {[1, 2, 3].map(n => (
             <div key={n} className={`step-dot ${step >= n ? 'active' : ''}`}>
@@ -121,7 +119,11 @@ export default function BookingModal({ barber, onClose }) {
             <h3 className="step-title">1. Escolha o serviço</h3>
             <div className="service-list">
               {services.map(s => (
-                <div key={s.id} className={`service-item ${selectedService?.id === s.id ? 'selected' : ''}`} onClick={() => setSelectedService(s)}>
+                <div
+                  key={s.id}
+                  className={`service-item ${selectedService?.id === s.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedService(s)}
+                >
                   <div>
                     <h4>{s.name}</h4>
                     <span className="duration"><Clock size={12} /> {s.duration} min</span>
@@ -130,7 +132,13 @@ export default function BookingModal({ barber, onClose }) {
                 </div>
               ))}
             </div>
-            <button className="btn-primary full" disabled={!selectedService} onClick={() => setStep(2)}>Continuar</button>
+            <button
+              className="btn-primary full"
+              disabled={!selectedService}
+              onClick={() => setStep(2)}
+            >
+              Continuar
+            </button>
           </div>
         )}
 
@@ -139,20 +147,40 @@ export default function BookingModal({ barber, onClose }) {
             <h3 className="step-title">2. Escolha data e horário</h3>
             <div className="date-selector">
               {dates.map(d => (
-                <button key={d.toISOString()} className={`date-btn ${selectedDate?.toDateString() === d.toDateString() ? 'active' : ''}`} onClick={() => setSelectedDate(d)}>
-                  <span className="day-name">{d.toLocaleDateString('pt-BR', { weekday: 'short' })}</span>
+                <button
+                  key={d.toISOString()}
+                  className={`date-btn ${selectedDate?.toDateString() === d.toDateString() ? 'active' : ''}`}
+                  onClick={() => setSelectedDate(d)}
+                >
+                  <span className="day-name">
+                    {d.toLocaleDateString('pt-BR', { weekday: 'short' })}
+                  </span>
                   <span className="day-num">{d.getDate()}</span>
                 </button>
               ))}
             </div>
+
             <div className="time-grid">
               {times.map(t => (
-                <button key={t} className={`time-btn ${selectedTime === t ? 'active' : ''}`} onClick={() => setSelectedTime(t)}>{t}</button>
+                <button
+                  key={t}
+                  className={`time-btn ${selectedTime === t ? 'active' : ''}`}
+                  onClick={() => setSelectedTime(t)}
+                >
+                  {t}
+                </button>
               ))}
             </div>
+
             <div className="button-row">
               <button className="btn-outline" onClick={() => setStep(1)}>Voltar</button>
-              <button className="btn-primary" disabled={!selectedDate || !selectedTime} onClick={() => setStep(3)}>Continuar</button>
+              <button
+                className="btn-primary"
+                disabled={!selectedDate || !selectedTime}
+                onClick={() => setStep(3)}
+              >
+                Continuar
+              </button>
             </div>
           </div>
         )}
@@ -161,15 +189,35 @@ export default function BookingModal({ barber, onClose }) {
           <div>
             <h3 className="step-title">3. Confirmar agendamento</h3>
             <div className="summary">
-              <div className="summary-row"><span>Barbeiro</span><strong>{barber.name}</strong></div>
-              <div className="summary-row"><span>Serviço</span><strong>{selectedService.name}</strong></div>
-              <div className="summary-row"><span>Data</span><strong>{selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</strong></div>
-              <div className="summary-row"><span>Horário</span><strong>{selectedTime}</strong></div>
-              <div className="summary-row total"><span>Total</span><strong>R$ {selectedService.price},00</strong></div>
+              <div className="summary-row">
+                <span>Barbeiro</span>
+                <strong>{barber.name}</strong>
+              </div>
+              <div className="summary-row">
+                <span>Serviço</span>
+                <strong>{selectedService.name}</strong>
+              </div>
+              <div className="summary-row">
+                <span>Data</span>
+                <strong>{selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</strong>
+              </div>
+              <div className="summary-row">
+                <span>Horário</span>
+                <strong>{selectedTime}</strong>
+              </div>
+              <div className="summary-row total">
+                <span>Total</span>
+                <strong>R$ {selectedService.price},00</strong>
+              </div>
             </div>
+
             <div className="button-row">
               <button className="btn-outline" onClick={() => setStep(2)}>Voltar</button>
-              <button className="btn-primary" onClick={confirm} disabled={salvando}>
+              <button 
+                className="btn-primary" 
+                onClick={confirm}
+                disabled={salvando}
+              >
                 {salvando ? 'Salvando...' : 'Confirmar e Pagar'}
               </button>
             </div>

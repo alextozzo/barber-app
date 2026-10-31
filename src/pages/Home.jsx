@@ -61,13 +61,16 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Modal de Agendamento */}
       {selectedBarber && (
         <BookingModal 
           barber={selectedBarber} 
           onClose={() => setSelectedBarber(null)} 
+          onAskLogin={() => setLoginOpen(true)} // <-- ESTA É A LINHA NOVA
         />
       )}
 
+      {/* Modal de Login */}
       {loginOpen && (
         <LoginModal onClose={() => setLoginOpen(false)} />
       )}

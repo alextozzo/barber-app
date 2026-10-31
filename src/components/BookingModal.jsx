@@ -1,19 +1,20 @@
-import { X, Clock, Check } from 'lucide-react';
+import { X, Clock, Check, Lock } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, addDoc } from 'firebase/firestore';
 import './BookingModal.css';
 
-export default function BookingModal({ barber, onClose }) {
+export default function BookingModal({ barber, onClose, onAskLogin }) {
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
-  const [user, setUser] = useState(null);
+  
+  // Começa como undefined para sabermos que ainda não checou
+  const [user, setUser] = useState(undefined); 
   const [salvando, setSalvando] = useState(false);
 
-  // Verifica se o usuário está logado
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -43,7 +44,7 @@ export default function BookingModal({ barber, onClose }) {
 
   async function confirm() {
     if (!auth.currentUser) {
-      alert('⚠️ Você precisa estar logado para agendar!');
+      alert('⚠️ Você precisa estar logado!');
       return;
     }
 
@@ -51,7 +52,7 @@ export default function BookingModal({ barber, onClose }) {
     try {
       await addDoc(collection(db, "agendamentos"), {
         clienteId: auth.currentUser.uid,
-        clienteNome: auth.currentUser.displayName || "Cliente sem nome",
+        clienteNome: auth.currentUser.displayName || "Cliente",
         clienteEmail: auth.currentUser.email,
         barbeiroId: barber.id,
         barbeiroNome: barber.name,
@@ -67,28 +68,40 @@ export default function BookingModal({ barber, onClose }) {
       onClose();
     } catch (error) {
       console.error("Erro ao salvar:", error);
-      alert('Erro ao salvar o agendamento. Tente novamente.');
+      alert('Erro ao salvar. Tente novamente.');
     } finally {
       setSalvando(false);
     }
   }
 
-  // TRAVA DE SEGURANÇA: Se não estiver logado, impede o agendamento
-  if (!user) {
+  // 1. Enquanto verifica no Firebase, mostra um "Carregando"
+  if (user === undefined) {
+    return (
+      <div className="modal-overlay">
+        <div className="modal-content" style={{ textAlign: 'center', padding: '50px' }}>
+          <p>Verificando login...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Se não estiver logado, mostra a tela de bloqueio
+  if (user === null) {
     return (
       <div className="modal-overlay" onClick={onClose}>
         <div className="modal-content" onClick={e => e.stopPropagation()}>
           <button className="modal-close" onClick={onClose}><X size={22} /></button>
-          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-            <h2 style={{ color: 'var(--gold)', marginBottom: '20px' }}>Quase lá!</h2>
+          <div style={{ textAlign: 'center', padding: '30px 10px' }}>
+            <Lock size={48} color="var(--gold)" style={{ margin: '0 auto 20px' }} />
+            <h2 style={{ color: 'var(--cream)', marginBottom: '10px' }}>Acesso Restrito</h2>
             <p style={{ color: 'var(--muted)', marginBottom: '30px' }}>
-              Para agendar seu horário com {barber.name}, você precisa estar logado.
+              Para agendar seu horário com <strong>{barber.name}</strong>, você precisa entrar na sua conta.
             </p>
             <button 
               className="btn-primary full" 
-              onClick={() => { onClose(); }}
+              onClick={() => { onClose(); if(onAskLogin) onAskLogin(); }}
             >
-              Fazer Login no topo da tela
+              Fazer Login Agora
             </button>
           </div>
         </div>
@@ -96,6 +109,7 @@ export default function BookingModal({ barber, onClose }) {
     );
   }
 
+  // 3. Se estiver logado, mostra o fluxo normal
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -114,16 +128,13 @@ export default function BookingModal({ barber, onClose }) {
           ))}
         </div>
 
+        {/* RESTO DO CÓDIGO (Passos 1, 2 e 3) */}
         {step === 1 && (
           <div>
             <h3 className="step-title">1. Escolha o serviço</h3>
             <div className="service-list">
               {services.map(s => (
-                <div
-                  key={s.id}
-                  className={`service-item ${selectedService?.id === s.id ? 'selected' : ''}`}
-                  onClick={() => setSelectedService(s)}
-                >
+                <div key={s.id} className={`service-item ${selectedService?.id === s.id ? 'selected' : ''}`} onClick={() => setSelectedService(s)}>
                   <div>
                     <h4>{s.name}</h4>
                     <span className="duration"><Clock size={12} /> {s.duration} min</span>
@@ -132,13 +143,7 @@ export default function BookingModal({ barber, onClose }) {
                 </div>
               ))}
             </div>
-            <button
-              className="btn-primary full"
-              disabled={!selectedService}
-              onClick={() => setStep(2)}
-            >
-              Continuar
-            </button>
+            <button className="btn-primary full" disabled={!selectedService} onClick={() => setStep(2)}>Continuar</button>
           </div>
         )}
 
@@ -147,40 +152,20 @@ export default function BookingModal({ barber, onClose }) {
             <h3 className="step-title">2. Escolha data e horário</h3>
             <div className="date-selector">
               {dates.map(d => (
-                <button
-                  key={d.toISOString()}
-                  className={`date-btn ${selectedDate?.toDateString() === d.toDateString() ? 'active' : ''}`}
-                  onClick={() => setSelectedDate(d)}
-                >
-                  <span className="day-name">
-                    {d.toLocaleDateString('pt-BR', { weekday: 'short' })}
-                  </span>
+                <button key={d.toISOString()} className={`date-btn ${selectedDate?.toDateString() === d.toDateString() ? 'active' : ''}`} onClick={() => setSelectedDate(d)}>
+                  <span className="day-name">{d.toLocaleDateString('pt-BR', { weekday: 'short' })}</span>
                   <span className="day-num">{d.getDate()}</span>
                 </button>
               ))}
             </div>
-
             <div className="time-grid">
               {times.map(t => (
-                <button
-                  key={t}
-                  className={`time-btn ${selectedTime === t ? 'active' : ''}`}
-                  onClick={() => setSelectedTime(t)}
-                >
-                  {t}
-                </button>
+                <button key={t} className={`time-btn ${selectedTime === t ? 'active' : ''}`} onClick={() => setSelectedTime(t)}>{t}</button>
               ))}
             </div>
-
             <div className="button-row">
               <button className="btn-outline" onClick={() => setStep(1)}>Voltar</button>
-              <button
-                className="btn-primary"
-                disabled={!selectedDate || !selectedTime}
-                onClick={() => setStep(3)}
-              >
-                Continuar
-              </button>
+              <button className="btn-primary" disabled={!selectedDate || !selectedTime} onClick={() => setStep(3)}>Continuar</button>
             </div>
           </div>
         )}
@@ -189,35 +174,15 @@ export default function BookingModal({ barber, onClose }) {
           <div>
             <h3 className="step-title">3. Confirmar agendamento</h3>
             <div className="summary">
-              <div className="summary-row">
-                <span>Barbeiro</span>
-                <strong>{barber.name}</strong>
-              </div>
-              <div className="summary-row">
-                <span>Serviço</span>
-                <strong>{selectedService.name}</strong>
-              </div>
-              <div className="summary-row">
-                <span>Data</span>
-                <strong>{selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</strong>
-              </div>
-              <div className="summary-row">
-                <span>Horário</span>
-                <strong>{selectedTime}</strong>
-              </div>
-              <div className="summary-row total">
-                <span>Total</span>
-                <strong>R$ {selectedService.price},00</strong>
-              </div>
+              <div className="summary-row"><span>Barbeiro</span><strong>{barber.name}</strong></div>
+              <div className="summary-row"><span>Serviço</span><strong>{selectedService.name}</strong></div>
+              <div className="summary-row"><span>Data</span><strong>{selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</strong></div>
+              <div className="summary-row"><span>Horário</span><strong>{selectedTime}</strong></div>
+              <div className="summary-row total"><span>Total</span><strong>R$ {selectedService.price},00</strong></div>
             </div>
-
             <div className="button-row">
               <button className="btn-outline" onClick={() => setStep(2)}>Voltar</button>
-              <button 
-                className="btn-primary" 
-                onClick={confirm}
-                disabled={salvando}
-              >
+              <button className="btn-primary" onClick={confirm} disabled={salvando}>
                 {salvando ? 'Salvando...' : 'Confirmar e Pagar'}
               </button>
             </div>

@@ -88,14 +88,16 @@ export default function CriarLoja() {
         fechamento: fechamento,
         almocoInicio: almocoInicio,
         almocoFim: almocoFim,
-        plano: planoEscolhido, // <-- AQUI! Salva o plano no banco
+        plano: planoEscolhido,
         donoId: usuario.uid,
         donoEmail: usuario.email,
         criadoEm: new Date()
       });
 
-      alert(`✅ Loja criada com sucesso!\nSeu link é: seusite.com/${slug}`);
-      navigate(`/${slug}`);
+      // Mostra o alerta e redireciona após o usuário clicar em OK
+      alert(`✅ Loja criada com sucesso!\nAgora vamos para o pagamento.`);
+      navigate('/checkout'); 
+      
     } catch (error) {
       console.error("Erro ao salvar:", error);
       alert("Erro ao criar a loja. Tente novamente.");
@@ -116,7 +118,10 @@ export default function CriarLoja() {
         <p style={{ color: 'var(--muted)', marginBottom: '30px' }}>Você precisa estar logado para criar sua loja.</p>
         <button 
           className="btn-primary" 
-          onClick={() => navigate('/?login=true')} 
+          onClick={() => {
+            localStorage.setItem('abrirLogin', 'true');
+            navigate('/');
+          }} 
         >
           Fazer Login ou Cadastro
         </button>

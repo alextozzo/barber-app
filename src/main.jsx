@@ -8,7 +8,8 @@ import SuperAdmin from './pages/SuperAdmin.jsx'
 import CriarLoja from './pages/CriarLoja.jsx'
 import Loja from './pages/Loja.jsx' 
 import Planos from './pages/Planos.jsx'
-import Fidelidade from './pages/Fidelidade.jsx' // <-- NOVO IMPORT AQUI
+import Fidelidade from './pages/Fidelidade.jsx'
+import Checkout from './pages/Checkout.jsx' // <-- NOVO IMPORT AQUI
 import Layout from './components/Layout.jsx'
 import './index.css'
 
@@ -25,6 +26,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         {/* Rota para o barbeiro criar/editar a loja */}
         <Route path="/criar-loja" element={<CriarLoja />} />
 
+        {/* NOVA ROTA: Tela de Pagamento (Checkout) */}
+        <Route path="/checkout" element={<Checkout />} />
+
         {/* Rota do Super Admin */}
         <Route path="/admin" element={<SuperAdmin />} />
 
@@ -32,7 +36,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route element={<Layout />}>
           <Route path="/painel" element={<Dashboard />} />
           <Route path="/servicos" element={<Servicos />} />
-          <Route path="/fidelidade" element={<Fidelidade />} /> {/* <-- NOVA ROTA AQUI */}
+          <Route path="/fidelidade" element={<Fidelidade />} />
         </Route>
 
         {/* ROTA DINÂMICA: O link único do barbeiro (ex: /rafael-andrade) */}

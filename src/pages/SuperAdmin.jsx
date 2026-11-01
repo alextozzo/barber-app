@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, addDoc, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
-import { Plus, Trash2, Store, Mail, Phone } from 'lucide-react';
-import './SuperAdmin.css'; // Vamos criar o CSS abaixo
+import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { Plus, Trash2, Store, Mail, Phone, CheckCircle } from 'lucide-react';
+import './SuperAdmin.css';
 
 export default function SuperAdmin() {
   const [barbearias, setBarbearias] = useState([]);
@@ -10,7 +10,6 @@ export default function SuperAdmin() {
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
 
-  // Puxa a lista de barbearias em tempo real
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "barbearias"), (snapshot) => {
       const lista = [];
@@ -31,7 +30,7 @@ export default function SuperAdmin() {
         nome,
         email,
         telefone,
-        status: 'ativo',
+        statusPagamento: 'ativo',
         criadoEm: new Date()
       });
 
@@ -51,49 +50,42 @@ export default function SuperAdmin() {
     }
   }
 
+  // NOVA FUNÇÃO: Aprovar Pagamento
+  async function aprovarPagamento(id) {
+    try {
+      const docRef = doc(db, "barbearias", id);
+      await updateDoc(docRef, { statusPagamento: 'ativo' });
+      alert("✅ Pagamento aprovado! A loja está liberada.");
+    } catch (error) { 
+      console.error(error); 
+      alert("Erro ao aprovar.");
+    }
+  }
+
   return (
     <div className="admin-container">
       <header className="admin-header">
         <h1>Painel do Super Admin</h1>
-        <p>Gerencie as barbearias cadastradas no sistema</p>
+        <p>Gerencie as barbearias e aprove os pagamentos</p>
       </header>
 
       <div className="admin-content">
-        {/* FORMULÁRIO DE CADASTRO */}
         <form className="form-admin card" onSubmit={cadastrarBarbearia}>
           <h3>Cadastrar Nova Barbearia</h3>
           
           <div className="input-group">
             <label>Nome da Barbearia</label>
-            <input 
-              type="text" 
-              placeholder="Ex: Navalha D'Or" 
-              value={nome}
-              onChange={e => setNome(e.target.value)}
-              required
-            />
+            <input type="text" placeholder="Ex: Navalha D'Or" value={nome} onChange={e => setNome(e.target.value)} required />
           </div>
 
           <div className="input-group">
             <label>E-mail do Dono</label>
-            <input 
-              type="email" 
-              placeholder="dono@barbearia.com" 
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-            />
+            <input type="email" placeholder="dono@barbearia.com" value={email} onChange={e => setEmail(e.target.value)} required />
           </div>
 
           <div className="input-group">
             <label>Telefone</label>
-            <input 
-              type="tel" 
-              placeholder="(11) 99999-9999" 
-              value={telefone}
-              onChange={e => setTelefone(e.target.value)}
-              required
-            />
+            <input type="tel" placeholder="(11) 99999-9999" value={telefone} onChange={e => setTelefone(e.target.value)} required />
           </div>
 
           <button type="submit" className="btn-primary full">
@@ -101,7 +93,6 @@ export default function SuperAdmin() {
           </button>
         </form>
 
-        {/* LISTA DE BARBEARIAS */}
         <div className="lista-admin">
           <h3>Barbearias Cadastradas</h3>
           
@@ -112,11 +103,23 @@ export default function SuperAdmin() {
               <div key={barbearia.id} className="admin-item card">
                 <div className="admin-info">
                   <h4><Store size={16} /> {barbearia.nome}</h4>
-                  <p><Mail size={14} /> {barbearia.email}</p>
+                  <p><Mail size={14} /> {barbearia.donoEmail || barbearia.email}</p>
                   <p><Phone size={14} /> {barbearia.telefone}</p>
+                  
+                  {/* Badge de Status */}
+                  <span className={`status-badge ${barbearia.statusPagamento === 'ativo' ? 'ativo' : 'pendente'}`}>
+                    {barbearia.statusPagamento === 'ativo' ? 'Ativo' : 'Pendente'}
+                  </span>
                 </div>
+                
                 <div className="admin-actions">
-                  <span className="status-badge">{barbearia.status}</span>
+                  {/* Botão de Aprovar (só aparece se estiver pendente) */}
+                  {barbearia.statusPagamento !== 'ativo' && (
+                    <button className="btn-aprovar" onClick={() => aprovarPagamento(barbearia.id)}>
+                      <CheckCircle size={16} /> Aprovar
+                    </button>
+                  )}
+                  
                   <button className="btn-delete" onClick={() => removerBarbearia(barbearia.id)}>
                     <Trash2 size={18} />
                   </button>

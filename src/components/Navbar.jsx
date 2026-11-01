@@ -9,7 +9,7 @@ import './Navbar.css';
 export default function Navbar({ onLoginClick, onBookClick }) {
   const [user, setUser] = useState(null);
   const [perfilOpen, setPerfilOpen] = useState(false); 
-  const [menuOpen, setMenuOpen] = useState(false); // Controle do menu mobile
+  const [menuOpen, setMenuOpen] = useState(false); 
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,7 +34,6 @@ export default function Navbar({ onLoginClick, onBookClick }) {
             <span>NAVALHA<em>d'Or</em></span>
           </a>
 
-          {/* Botão do Menu Mobile */}
           <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -46,7 +45,11 @@ export default function Navbar({ onLoginClick, onBookClick }) {
             
             <li>
               <button 
-                onClick={() => { navigate('/planos'); setMenuOpen(false); }} 
+                onClick={() => { 
+                  localStorage.setItem('intencao', 'barbeiro'); // <-- MARCA A INTENÇÃO AQUI
+                  navigate('/planos'); 
+                  setMenuOpen(false); 
+                }} 
                 style={{ background: 'none', color: 'var(--gold)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
               >
                 <Store size={16} /> Sou Barbeiro

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { auth, db } from '../firebase'; 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom'; // <-- IMPORT DO NAVIGATE
 import './LoginModal.css';
 
 export default function LoginModal({ onClose }) {
@@ -13,6 +14,7 @@ export default function LoginModal({ onClose }) {
   const [password, setPassword] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
+  const navigate = useNavigate(); // <-- HOOK DO NAVIGATE
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -23,11 +25,8 @@ export default function LoginModal({ onClose }) {
       if (mode === 'login') {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        // Cria a conta
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        // Salva o nome no perfil do usuário
         await updateProfile(userCredential.user, { displayName: nome });
-        // Salva os dados no banco de dados (incluindo o telefone)
         await setDoc(doc(db, "clientes", userCredential.user.uid), {
           nome: nome,
           telefone: telefone,
@@ -35,8 +34,18 @@ export default function LoginModal({ onClose }) {
           criadoEm: new Date()
         });
       }
-      alert(`✅ Sucesso!`);
-      onClose();
+      
+      // Verifica a intenção (se ele veio da tela de Planos)
+      const intencao = localStorage.getItem('intencao');
+      
+      if (intencao === 'barbeiro') {
+        localStorage.removeItem('intencao'); // Limpa a intenção
+        onClose(); // Fecha o modal
+        navigate('/criar-loja'); // Redireciona para a loja
+      } else {
+        onClose(); // Apenas fecha o modal
+      }
+
     } catch (error) {
       console.error(error);
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {

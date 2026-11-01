@@ -54,8 +54,8 @@ export default function Planos() {
 
   function escolherPlano(planoId) {
     localStorage.setItem('planoEscolhido', planoId);
-    alert(`Você escolheu o plano ${planoId.toUpperCase()}. Faça login para continuar!`);
-    navigate('/?login=true'); // <-- REDIRECIONA PARA A HOME COM O LOGIN ABERTO
+    localStorage.setItem('abrirLogin', 'true'); // <-- NOVA FLAG PARA ABRIR O LOGIN
+    navigate('/'); // <-- VAI PARA A HOME LIMPA
   }
 
   return (

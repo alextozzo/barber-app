@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import BarberCard from '../components/BarberCard';
@@ -9,9 +9,18 @@ export default function Home() {
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [loginOpen, setLoginOpen] = useState(false);
 
+  // Abre o login automaticamente se o barbeiro vier da tela de Planos
+  useEffect(() => {
+    const abrirLogin = localStorage.getItem('abrirLogin');
+    if (abrirLogin === 'true') {
+      setLoginOpen(true);
+      localStorage.removeItem('abrirLogin'); // Limpa a flag
+    }
+  }, []);
+
   const barbers = [
     {
-       id: "dDAwJbzmO8VG0VgvFaJl3cojwHP2",
+      id: "dDAwJbzmO8VG0VgvFaJl3cojwHP2",
       name: 'Rafael Andrade',
       title: 'Master Barber',
       photo: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=400',
@@ -61,16 +70,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Modal de Agendamento */}
       {selectedBarber && (
         <BookingModal 
           barber={selectedBarber} 
           onClose={() => setSelectedBarber(null)} 
-          onAskLogin={() => setLoginOpen(true)} // <-- ESTA É A LINHA NOVA
+          onAskLogin={() => setLoginOpen(true)} 
         />
       )}
 
-      {/* Modal de Login */}
       {loginOpen && (
         <LoginModal onClose={() => setLoginOpen(false)} />
       )}

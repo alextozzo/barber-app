@@ -34,11 +34,11 @@ export default function Loja() {
           const dadosLoja = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
           setLoja(dadosLoja);
         } else {
-          setErro("Barbearia não encontrada. Verifique o link.");
+          setErro("Estabelecimento não encontrado. Verifique o link.");
         }
       } catch (error) {
         console.error("Erro ao buscar loja:", error);
-        setErro("Erro ao carregar a barbearia.");
+        setErro("Erro ao carregar o estabelecimento.");
       } finally {
         setCarregando(false);
       }
@@ -46,18 +46,34 @@ export default function Loja() {
     buscarLoja();
   }, [slug]);
 
+  useEffect(() => {
+    if (loja && loja.corPrincipal) {
+      document.documentElement.style.setProperty('--gold', loja.corPrincipal);
+    } else {
+      document.documentElement.style.setProperty('--gold', '#C9A961');
+    }
+  }, [loja]);
+
   if (carregando) return <div style={{ padding: '50px', textAlign: 'center', color: 'var(--gold)' }}>Carregando...</div>;
   if (erro) return <div style={{ padding: '50px', textAlign: 'center', color: 'var(--danger)' }}>{erro}</div>;
   if (!loja) return null;
 
+  // Define as especialidades baseadas no nicho
+  const especialidades = loja.nicho === 'barbearia' ? ['Corte', 'Barba'] : 
+                         loja.nicho === 'manicure' ? ['Manicure', 'Pedicure'] : 
+                         loja.nicho === 'tatuador' ? ['Tatuagem', 'Piercing'] : 
+                         loja.nicho === 'estetica' ? ['Estética', 'Sobrancelha'] :
+                         loja.nicho === 'pet' ? ['Banho', 'Tosa'] : ['Serviços'];
+
+  // Objeto "barbeiro" completo para o BookingModal
   const barbeiro = {
     id: loja.donoId,
     name: loja.nome,
-    title: 'Barbeiro',
+    title: loja.nicho || 'Profissional',
     photo: loja.fotoUrl || 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=400',
     rating: 5.0,
     reviews: 0,
-    specialties: ['Corte', 'Barba'],
+    specialties: especialidades, // Usando a variável correta
     abertura: loja.abertura || '09:00',
     fechamento: loja.fechamento || '19:00',
     almocoInicio: loja.almocoInicio || '12:00',
@@ -69,7 +85,7 @@ export default function Loja() {
       <nav className="navbar-loja">
         <div className="nav-container">
           <Link to="/" className="logo">
-            <Store size={24} color="#C9A961" />
+            <Store size={24} color="var(--gold)" />
             <span>VOLTAR PARA O INÍCIO</span>
           </Link>
           <div className="nav-actions">
@@ -90,11 +106,11 @@ export default function Loja() {
           <div className="loja-info">
             <h1>{loja.nome}</h1>
             <div className="rating">
-              <Star size={16} fill="#C9A961" color="#C9A961" />
+              <Star size={16} fill="var(--gold)" color="var(--gold)" />
               <span>{barbeiro.rating}</span>
               <span className="reviews">(novo no app)</span>
             </div>
-            <p>Especialidades: {barbeiro.specialties.join(', ')}</p>
+            <p style={{ textTransform: 'capitalize' }}>Especialidades: {barbeiro.specialties.join(', ')}</p>
           </div>
           <button className="btn-primary" onClick={() => setSelectedBarber(barbeiro)}>
             Agendar Horário
@@ -106,17 +122,15 @@ export default function Loja() {
           <p style={{ color: 'var(--muted)' }}>Clique em agendar para escolher o serviço, data e horário.</p>
         </div>
 
-        {/* BANNER DE MARKETING PARA NOVOS BARBEIROS */}
         <div className="banner-marketing card">
           <div className="banner-content">
-            <h3>Você também é barbeiro?</h3>
+            <h3>Você também é profissional da beleza?</h3>
             <p>Crie sua página exclusiva, receba agendamentos no WhatsApp e fidelize seus clientes.</p>
           </div>
           <a href="/planos" className="btn-primary">
             Criar Minha Loja Grátis
           </a>
         </div>
-
       </main>
 
       {selectedBarber && (

@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { Plus, Trash2, Store, Mail, Phone, CheckCircle } from 'lucide-react';
+import { collection, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { Store, Mail, Phone, CheckCircle, XCircle, DollarSign, Trash2 } from 'lucide-react';
 import './SuperAdmin.css';
 
 export default function SuperAdmin() {
   const [barbearias, setBarbearias] = useState([]);
-  const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
-  const [telefone, setTelefone] = useState('');
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "barbearias"), (snapshot) => {
@@ -21,112 +18,140 @@ export default function SuperAdmin() {
     return () => unsubscribe();
   }, []);
 
-  async function cadastrarBarbearia(e) {
-    e.preventDefault();
-    if (!nome || !email || !telefone) return;
+  // --- METRICAS DO DASHBOARD ---
+  const totalLojas = barbearias.length;
+  const lojasAtivas = barbearias.filter(b => b.statusPagamento === 'ativo').length;
+  const lojasPendentes = barbearias.filter(b => b.statusPagamento !== 'ativo').length;
+  
+  // Calcula faturamento estimado (soma dos planos)
+  const faturamentoEstimado = barbearias.reduce((acc, b) => {
+    if (b.statusPagamento !== 'ativo') return acc;
+    const precos = { basico: 29.90, pro: 49.90, premium: 79.90 };
+    return acc + (precos[b.plano] || 0);
+  }, 0);
 
-    try {
-      await addDoc(collection(db, "barbearias"), {
-        nome,
-        email,
-        telefone,
-        statusPagamento: 'ativo',
-        criadoEm: new Date()
-      });
-
-      setNome('');
-      setEmail('');
-      setTelefone('');
-      alert("Barbearia cadastrada com sucesso!");
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao cadastrar.");
-    }
-  }
-
-  async function removerBarbearia(id) {
-    if (window.confirm("Tem certeza que deseja remover esta barbearia?")) {
-      await deleteDoc(doc(db, "barbearias", id));
-    }
-  }
-
-  // NOVA FUNÇÃO: Aprovar Pagamento
+  // --- ACOES ---
   async function aprovarPagamento(id) {
     try {
-      const docRef = doc(db, "barbearias", id);
-      await updateDoc(docRef, { statusPagamento: 'ativo' });
-      alert("✅ Pagamento aprovado! A loja está liberada.");
-    } catch (error) { 
-      console.error(error); 
-      alert("Erro ao aprovar.");
-    }
+      await updateDoc(doc(db, "barbearias", id), { statusPagamento: 'ativo' });
+    } catch (error) { console.error(error); }
+  }
+
+  async function bloquearLoja(id) {
+    if (!window.confirm("Bloquear esta loja? O link ficara offline.")) return;
+    try {
+      await updateDoc(doc(db, "barbearias", id), { statusPagamento: 'pendente' });
+    } catch (error) { console.error(error); }
+  }
+
+  async function removerLoja(id) {
+    if (!window.confirm("ATENCAO: Isso apagara a loja permanentemente. Continuar?")) return;
+    try {
+      await deleteDoc(doc(db, "barbearias", id));
+    } catch (error) { console.error(error); }
   }
 
   return (
-    <div className="admin-container">
+    <div className="admin-dashboard">
       <header className="admin-header">
         <h1>Painel do Super Admin</h1>
-        <p>Gerencie as barbearias e aprove os pagamentos</p>
+        <p>Visao geral do seu negocio</p>
       </header>
 
-      <div className="admin-content">
-        <form className="form-admin card" onSubmit={cadastrarBarbearia}>
-          <h3>Cadastrar Nova Barbearia</h3>
-          
-          <div className="input-group">
-            <label>Nome da Barbearia</label>
-            <input type="text" placeholder="Ex: Navalha D'Or" value={nome} onChange={e => setNome(e.target.value)} required />
+      {/* KPI CARDS */}
+      <div className="kpi-grid">
+        <div className="kpi-card card">
+          <div className="kpi-icon"><Store size={24} /></div>
+          <div className="kpi-info">
+            <span>Total de Lojas</span>
+            <strong>{totalLojas}</strong>
           </div>
-
-          <div className="input-group">
-            <label>E-mail do Dono</label>
-            <input type="email" placeholder="dono@barbearia.com" value={email} onChange={e => setEmail(e.target.value)} required />
+        </div>
+        <div className="kpi-card card">
+          <div className="kpi-icon" style={{ color: '#4A7C59' }}><CheckCircle size={24} /></div>
+          <div className="kpi-info">
+            <span>Lojas Ativas</span>
+            <strong>{lojasAtivas}</strong>
           </div>
-
-          <div className="input-group">
-            <label>Telefone</label>
-            <input type="tel" placeholder="(11) 99999-9999" value={telefone} onChange={e => setTelefone(e.target.value)} required />
+        </div>
+        <div className="kpi-card card">
+          <div className="kpi-icon" style={{ color: '#ff6b6b' }}><XCircle size={24} /></div>
+          <div className="kpi-info">
+            <span>Pendentes/Bloqueadas</span>
+            <strong>{lojasPendentes}</strong>
           </div>
+        </div>
+        <div className="kpi-card card destaque">
+          <div className="kpi-icon"><DollarSign size={24} /></div>
+          <div className="kpi-info">
+            <span>Faturamento Estimado (Mes)</span>
+            <strong>R$ {faturamentoEstimado.toFixed(2).replace('.', ',')}</strong>
+          </div>
+        </div>
+      </div>
 
-          <button type="submit" className="btn-primary full">
-            <Plus size={18} /> Cadastrar Barbearia
-          </button>
-        </form>
-
-        <div className="lista-admin">
-          <h3>Barbearias Cadastradas</h3>
-          
-          {barbearias.length === 0 ? (
-            <p className="empty-msg">Nenhuma barbearia cadastrada ainda.</p>
-          ) : (
-            barbearias.map(barbearia => (
-              <div key={barbearia.id} className="admin-item card">
-                <div className="admin-info">
-                  <h4><Store size={16} /> {barbearia.nome}</h4>
-                  <p><Mail size={14} /> {barbearia.donoEmail || barbearia.email}</p>
-                  <p><Phone size={14} /> {barbearia.telefone}</p>
-                  
-                  {/* Badge de Status */}
-                  <span className={`status-badge ${barbearia.statusPagamento === 'ativo' ? 'ativo' : 'pendente'}`}>
-                    {barbearia.statusPagamento === 'ativo' ? 'Ativo' : 'Pendente'}
-                  </span>
-                </div>
-                
-                <div className="admin-actions">
-                  {/* Botão de Aprovar (só aparece se estiver pendente) */}
-                  {barbearia.statusPagamento !== 'ativo' && (
-                    <button className="btn-aprovar" onClick={() => aprovarPagamento(barbearia.id)}>
-                      <CheckCircle size={16} /> Aprovar
-                    </button>
-                  )}
-                  
-                  <button className="btn-delete" onClick={() => removerBarbearia(barbearia.id)}>
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
+      {/* TABELA DE GESTAO */}
+      <div className="gestao-card card">
+        <h3>Gestao de Lojas</h3>
+        <div className="tabela-container">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Barbearia</th>
+                <th>Dono / Contato</th>
+                <th>Plano</th>
+                <th>Status</th>
+                <th>Acoes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {barbearias.length === 0 ? (
+                <tr><td colSpan="5" style={{ textAlign: 'center', color: 'var(--muted)' }}>Nenhuma loja cadastrada.</td></tr>
+              ) : (
+                barbearias.map(b => (
+                  <tr key={b.id}>
+                    <td>
+                      <div className="loja-nome">
+                        <Store size={16} /> {b.nome || 'Sem nome'}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="contato-info">
+                        <span><Mail size={12} /> {b.donoEmail || b.email}</span>
+                        {b.telefone && <span><Phone size={12} /> {b.telefone}</span>}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`plano-badge ${b.plano}`}>
+                        {b.plano || 'basico'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${b.statusPagamento === 'ativo' ? 'ativo' : 'pendente'}`}>
+                        {b.statusPagamento === 'ativo' ? 'Ativo' : 'Pendente'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="acoes-cell">
+                        {b.statusPagamento !== 'ativo' ? (
+                          <button className="btn-aprovar" onClick={() => aprovarPagamento(b.id)} title="Aprovar">
+                            <CheckCircle size={16} />
+                          </button>
+                        ) : (
+                          <button className="btn-bloquear" onClick={() => bloquearLoja(b.id)} title="Bloquear">
+                            <XCircle size={16} />
+                          </button>
+                        )}
+                        <button className="btn-delete" onClick={() => removerLoja(b.id)} title="Excluir">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

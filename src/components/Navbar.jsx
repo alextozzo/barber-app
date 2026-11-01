@@ -1,4 +1,4 @@
-import { Scissors, LogOut, Store, Menu, X } from 'lucide-react';
+import { LogOut, Store, Menu, X, Calendar } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -30,8 +30,8 @@ export default function Navbar({ onLoginClick, onBookClick }) {
       <nav className="navbar">
         <div className="nav-container">
           <a href="/" className="logo">
-            <Scissors size={24} color="#C9A961" />
-            <span>NAVALHA<em>d'Or</em></span>
+            <Calendar size={24} color="var(--primary)" />
+            <span>Agenda<em>ê</em></span>
           </a>
 
           <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)}>
@@ -39,28 +39,31 @@ export default function Navbar({ onLoginClick, onBookClick }) {
           </button>
 
           <ul className={`nav-links ${menuOpen ? 'open' : ''}`}>
-            <li><a href="#barbeiros" onClick={() => setMenuOpen(false)}>Barbeiros</a></li>
+            <li><a href="#profissionais" onClick={() => setMenuOpen(false)}>Profissionais</a></li>
             <li><a href="#servicos" onClick={() => setMenuOpen(false)}>Serviços</a></li>
             <li><a href="#sobre" onClick={() => setMenuOpen(false)}>Sobre</a></li>
             
             <li>
               <button 
                 onClick={() => { 
-                  localStorage.setItem('intencao', 'barbeiro'); // <-- MARCA A INTENÇÃO AQUI
+                  localStorage.setItem('intencao', 'profissional');
                   navigate('/planos'); 
                   setMenuOpen(false); 
                 }} 
-                style={{ background: 'none', color: 'var(--gold)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
+                style={{ background: 'none', color: 'var(--primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                <Store size={16} /> Sou Barbeiro
+                <Store size={16} /> Sou Profissional
               </button>
             </li>
 
             {user ? (
               <li style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <button 
-                  onClick={() => { setPerfilOpen(true); setMenuOpen(false); }}
-                  style={{ background: 'none', color: 'var(--gold)', fontWeight: '600', fontSize: '14px' }}
+                  onClick={() => { 
+                    navigate('/minha-conta'); 
+                    setMenuOpen(false); 
+                  }}
+                  style={{ background: 'none', color: 'var(--cream)', fontWeight: '600', fontSize: '14px' }}
                 >
                   Olá, {user.displayName ? user.displayName.split(' ')[0] : 'Cliente'}
                 </button>

@@ -132,6 +132,24 @@
   font-style: italic;
 }
 
+.btn-upgrade {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  padding: 14px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+.btn-upgrade:hover { background: rgba(201, 169, 97, 0.1); }
+
 @media (max-width: 768px) {
   .servicos-content {
     grid-template-columns: 1fr;

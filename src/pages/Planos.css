@@ -12,7 +12,7 @@
   font-size: 14px;
   transition: color 0.2s;
 }
-.logo-voltar:hover { color: var(--gold); }
+.logo-voltar:hover { color: var(--primary); }
 
 .planos-header {
   text-align: center;
@@ -21,7 +21,7 @@
 }
 
 .planos-header .tagline {
-  color: var(--gold);
+  color: var(--primary);
   font-size: 13px;
   letter-spacing: 4px;
   text-transform: uppercase;
@@ -32,7 +32,7 @@
   margin: 16px 0;
   color: var(--cream);
 }
-.planos-header h1 em { color: var(--gold); font-style: italic; }
+.planos-header h1 em { color: var(--primary); font-style: italic; }
 .planos-header p { color: var(--muted); font-size: 16px; }
 
 .planos-grid {
@@ -53,10 +53,10 @@
 }
 
 .plano-card.destaque {
-  border-color: var(--gold);
+  border-color: var(--primary);
   transform: scale(1.05);
-  box-shadow: 0 10px 40px rgba(201, 169, 97, 0.15);
-  background: linear-gradient(180deg, var(--bg-card) 0%, #2B1F1A 100%);
+  box-shadow: 0 10px 40px rgba(59, 130, 246, 0.15);
+  background: linear-gradient(180deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.05) 100%);
 }
 
 .badge-destaque {
@@ -64,8 +64,8 @@
   top: 0;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: var(--gold);
-  color: var(--bg-primary);
+  background: var(--primary);
+  color: #FFFFFF;
   padding: 6px 16px;
   border-radius: 20px;
   font-size: 12px;
@@ -77,12 +77,12 @@
 .plano-icone {
   width: 48px;
   height: 48px;
-  background: rgba(201, 169, 97, 0.1);
+  background: rgba(59, 130, 246, 0.1);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--gold);
+  color: var(--primary);
   margin-bottom: 20px;
 }
 
@@ -109,9 +109,9 @@
 }
 .plano-preco span { font-size: 14px; color: var(--muted); }
 .plano-preco strong {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 48px;
-  color: var(--gold);
+  color: var(--primary);
   margin: 0 4px;
   line-height: 1;
 }
@@ -131,15 +131,22 @@
   margin-bottom: 16px;
 }
 
-@media (max-width: 768px) {
-  .plano-card.destaque { transform: scale(1); }
-  .planos-header h1 { font-size: 32px; }
-}@media (max-width: 900px) {
+.plano-card .btn-outline {
+  border-color: var(--border);
+  color: var(--cream);
+}
+.plano-card .btn-outline:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+@media (max-width: 900px) {
   .planos-grid {
-    grid-template-columns: 1fr; /* Um plano embaixo do outro */
+    grid-template-columns: 1fr;
   }
   .plano-card.destaque {
-    transform: scale(1); /* Tira o zoom do plano destaque */
+    transform: scale(1);
   }
   .planos-header h1 {
     font-size: 32px;

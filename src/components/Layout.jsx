@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LogOut, Calendar, DollarSign, Users, Scissors, Award } from 'lucide-react'; // Adicionado Award aqui
+import { LogOut, Calendar, DollarSign, Users, Scissors, Award } from 'lucide-react';
 import './Layout.css';
 
 export default function Layout() {
@@ -17,7 +17,12 @@ export default function Layout() {
             <Scissors size={18} /> Serviços
           </Link>
           
-          {/* NOVO LINK: Fidelidade */}
+          {/* NOVO LINK: Equipe */}
+          <Link to="/equipe" className={location.pathname === '/equipe' ? 'active' : ''}>
+            <Users size={18} /> Equipe
+          </Link>
+
+          {/* LINK: Fidelidade */}
           <Link to="/fidelidade" className={location.pathname === '/fidelidade' ? 'active' : ''}>
             <Award size={18} /> Fidelidade
           </Link>

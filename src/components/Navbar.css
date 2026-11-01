@@ -2,10 +2,10 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(26, 20, 16, 0.95);
+  background: rgba(15, 23, 42, 0.8);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
-  padding: 16px 0;
+  padding: 12px 0; /* Um pouco mais fino */
 }
 
 .nav-container {
@@ -17,19 +17,32 @@
   align-items: center;
 }
 
+/* DESTAQUE DA LOGO */
 .logo {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-family: 'Playfair Display', serif;
-  font-size: 22px;
-  font-weight: 700;
+  gap: 12px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
   color: var(--cream);
   text-decoration: none;
-  letter-spacing: 1.5px;
+  letter-spacing: -1.2px;
 }
 
-.logo em { color: var(--gold); font-style: italic; }
+.logo svg {
+  background: rgba(59, 130, 246, 0.15);
+  padding: 6px;
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+}
+
+.logo em {
+  color: var(--primary);
+  font-style: normal;
+}
 
 .nav-links {
   display: flex;
@@ -42,22 +55,25 @@
   color: var(--muted);
   text-decoration: none;
   font-size: 14px;
+  font-weight: 500;
   transition: color 0.2s;
 }
 
-.nav-links a:hover { color: var(--gold); }
+.nav-links a:hover { 
+  color: var(--primary); 
+}
 
 .menu-toggle {
   display: none;
   background: none;
-  color: var(--gold);
+  color: var(--primary);
   cursor: pointer;
 }
 
 /* REGRAS PARA CELULAR */
 @media (max-width: 900px) {
   .menu-toggle {
-    display: block; /* Mostra o botão de menu */
+    display: block; 
   }
 
   .nav-links {
@@ -76,7 +92,7 @@
   }
 
   .nav-links.open {
-    transform: translateY(0); /* Abre o menu */
+    transform: translateY(0); 
     z-index: 100;
   }
 

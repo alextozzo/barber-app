@@ -10,7 +10,7 @@ export default function Planos() {
       id: 'basico',
       nome: 'Plano Básico',
       preco: '29',
-      descricao: 'Para quem está começando a organizar a agenda.',
+      descricao: 'Para quem está começando a organizar a agenda e parar de perder tempo no WhatsApp.',
       icone: <Scissors size={24} />,
       features: [
         'Link exclusivo para bio do Instagram',
@@ -24,7 +24,7 @@ export default function Planos() {
       id: 'pro',
       nome: 'Plano Pro',
       preco: '49',
-      descricao: 'Para barbearias que querem crescer e fidelizar.',
+      descricao: 'Para profissionais que querem crescer, fidelizar clientes e ter controle total do negócio.',
       icone: <Zap size={24} />,
       destaque: true,
       features: [
@@ -40,22 +40,22 @@ export default function Planos() {
       id: 'premium',
       nome: 'Plano Premium',
       preco: '79',
-      descricao: 'Para barbearias com múltiplos profissionais.',
+      descricao: 'A solução completa para estúdios e salões com múltiplos profissionais.',
       icone: <Crown size={24} />,
       features: [
         'Tudo do Plano Pro',
-        'Múltiplos barbeiros na mesma loja',
-        'Gestão de comissões',
-        'Pagamento antecipado (sinal)',
-        'Página personalizada com sua marca'
+        'Gestão de equipe (múltiplos profissionais)',
+        'Cartão Fidelidade digital',
+        'Personalização da cor da sua marca',
+        'Página exclusiva com sua identidade'
       ]
     }
   ];
 
   function escolherPlano(planoId) {
     localStorage.setItem('planoEscolhido', planoId);
-    localStorage.setItem('abrirLogin', 'true'); // <-- NOVA FLAG PARA ABRIR O LOGIN
-    navigate('/'); // <-- VAI PARA A HOME LIMPA
+    localStorage.setItem('abrirLogin', 'true');
+    navigate('/');
   }
 
   return (
@@ -63,7 +63,7 @@ export default function Planos() {
       <header className="planos-header">
         <Link to="/" className="logo-voltar">← Voltar</Link>
         <span className="tagline">— Escolha seu Plano —</span>
-        <h1>Invista no crescimento da sua <em>barbearia</em></h1>
+        <h1>Invista no crescimento do seu <em>negócio</em></h1>
         <p>Cancele quando quiser. Sem taxa de adesão. Sem porcentagem nas vendas.</p>
       </header>
 
@@ -85,7 +85,7 @@ export default function Planos() {
             <ul className="plano-features">
               {plano.features.map((feature, index) => (
                 <li key={index}>
-                  <Check size={16} color="var(--gold)" /> {feature}
+                  <Check size={16} color="var(--primary)" /> {feature}
                 </li>
               ))}
             </ul>

@@ -134,4 +134,14 @@
 @media (max-width: 768px) {
   .plano-card.destaque { transform: scale(1); }
   .planos-header h1 { font-size: 32px; }
+}@media (max-width: 900px) {
+  .planos-grid {
+    grid-template-columns: 1fr; /* Um plano embaixo do outro */
+  }
+  .plano-card.destaque {
+    transform: scale(1); /* Tira o zoom do plano destaque */
+  }
+  .planos-header h1 {
+    font-size: 32px;
+  }
 }

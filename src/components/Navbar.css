@@ -2,7 +2,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(26, 20, 16, 0.92);
+  background: rgba(26, 20, 16, 0.95);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   padding: 16px 0;
@@ -29,10 +29,7 @@
   letter-spacing: 1.5px;
 }
 
-.logo em {
-  color: var(--gold);
-  font-style: italic;
-}
+.logo em { color: var(--gold); font-style: italic; }
 
 .nav-links {
   display: flex;
@@ -45,12 +42,48 @@
   color: var(--muted);
   text-decoration: none;
   font-size: 14px;
-  font-weight: 400;
   transition: color 0.2s;
 }
 
 .nav-links a:hover { color: var(--gold); }
 
+.menu-toggle {
+  display: none;
+  background: none;
+  color: var(--gold);
+  cursor: pointer;
+}
+
+/* REGRAS PARA CELULAR */
 @media (max-width: 900px) {
-  .nav-links { display: none; }
+  .menu-toggle {
+    display: block; /* Mostra o botão de menu */
+  }
+
+  .nav-links {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary);
+    flex-direction: column;
+    padding: 24px;
+    gap: 20px;
+    border-bottom: 1px solid var(--border);
+    transform: translateY(-150%);
+    transition: transform 0.3s ease;
+    z-index: -1;
+  }
+
+  .nav-links.open {
+    transform: translateY(0); /* Abre o menu */
+    z-index: 100;
+  }
+
+  .nav-links li {
+    width: 100%;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+  }
 }

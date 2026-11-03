@@ -15,7 +15,7 @@ export default function Home() {
       setLoginOpen(true);
       localStorage.removeItem('abrirLogin'); 
     }
-  }, []);
+  }, [location]); // <-- CORRIGIDO: Adicionado location
 
   return (
     <>
@@ -26,7 +26,6 @@ export default function Home() {
       
       <Hero onBookClick={() => setLoginOpen(true)} />
 
-      {/* SEÇÃO: RECURSOS DO SAAS */}
       <section className="section-features">
         <div className="section-header">
           <span className="section-tagline">— Tudo em um só lugar —</span>
@@ -57,7 +56,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SEÇÃO: COMO FUNCIONA */}
       <section className="section-como-funciona">
         <div className="section-header">
           <span className="section-tagline">— Simples e Rápido —</span>
@@ -83,7 +81,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SEÇÃO: NICHOS */}
       <section className="section-nichos">
         <div className="section-header">
           <span className="section-tagline">— Para Todos os Talentos —</span>
@@ -110,7 +107,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SEÇÃO: CTA FINAL */}
       <section className="section-cta">
         <div className="cta-card card">
           <h2>Pronto para lotar sua agenda?</h2>
@@ -121,13 +117,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* MODAL DE LOGIN */}
       {loginOpen && (
         <LoginModal onClose={() => setLoginOpen(false)} />
       )}
 
       <style>{`
-        /* ESTILOS GERAIS DAS SEÇÕES */
         .section-features, .section-como-funciona, .section-nichos, .section-cta {
           max-width: 1200px;
           margin: 100px auto;
@@ -154,7 +148,6 @@ export default function Home() {
           font-style: italic;
         }
 
-        /* FEATURES */
         .features-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -178,7 +171,6 @@ export default function Home() {
         .feature-card h3 { font-size: 18px; color: var(--cream); margin-bottom: 12px; }
         .feature-card p { color: var(--muted); font-size: 14px; line-height: 1.6; }
 
-        /* COMO FUNCIONA */
         .passos-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -205,7 +197,6 @@ export default function Home() {
         .passo-card h3 { font-size: 20px; color: var(--cream); margin-bottom: 12px; }
         .passo-card p { color: var(--muted); font-size: 14px; }
 
-        /* NICHOS */
         .nichos-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -229,7 +220,6 @@ export default function Home() {
           margin-top: 16px;
         }
 
-        /* CTA FINAL */
         .cta-card {
           text-align: center;
           padding: 60px 40px;

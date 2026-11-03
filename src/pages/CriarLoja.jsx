@@ -3,20 +3,20 @@ import { db, auth } from '../firebase';
 import { doc, setDoc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { Store, Link as LinkIcon, Camera, Clock, Utensils, Scissors } from 'lucide-react';
+import { Store, Link as LinkIcon, Camera, Clock, Utensils } from 'lucide-react';
 import './CriarLoja.css';
 
 export default function CriarLoja() {
   const [nomeLoja, setNomeLoja] = useState('');
   const [slug, setSlug] = useState('');
   const [fotoUrl, setFotoUrl] = useState('');
-  const [nicho, setNicho] = useState('barbearia'); // <-- NOVO ESTADO
+  const [nicho, setNicho] = useState('barbearia');
   
   const [abertura, setAbertura] = useState('09:00');
   const [fechamento, setFechamento] = useState('19:00');
   const [almocoInicio, setAlmocoInicio] = useState('12:00');
   const [almocoFim, setAlmocoFim] = useState('13:00');
-  const [corPrincipal, setCorPrincipal] = useState('#C9A961');
+  const [corPrincipal, setCorPrincipal] = useState('#3B82F6');
 
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -34,10 +34,15 @@ export default function CriarLoja() {
 
   useEffect(() => {
     async function fetchLoja() {
-      if (!usuario) {
+      // Se o usuário ainda não foi carregado, não faz nada
+      if (usuario === undefined) return;
+      
+      // Se o usuário não está logado, para o carregamento e mostra o bloqueio
+      if (usuario === null) {
         setCarregando(false);
         return; 
       }
+
       try {
         const docRef = doc(db, "barbearias", usuario.uid);
         const docSnap = await getDoc(docRef);
@@ -51,7 +56,7 @@ export default function CriarLoja() {
           setFechamento(data.fechamento || '19:00');
           setAlmocoInicio(data.almocoInicio || '12:00');
           setAlmocoFim(data.almocoFim || '13:00');
-          setCorPrincipal(data.corPrincipal || '#C9A961');
+          setCorPrincipal(data.corPrincipal || '#3B82F6');
         }
       } catch (error) {
         console.error("Erro ao buscar loja:", error);
@@ -78,47 +83,42 @@ export default function CriarLoja() {
 
     setSalvando(true);
     try {
-      // 1. Salva os dados da loja
       await setDoc(doc(db, "barbearias", usuario.uid), {
         nome: nomeLoja,
         slug: slug,
         fotoUrl: fotoUrl,
-        nicho: nicho, // <-- SALVA O NICHO
+        nicho: nicho,
         abertura: abertura,
         fechamento: fechamento,
         almocoInicio: almocoInicio,
         almocoFim: almocoFim,
         corPrincipal: corPrincipal,
         plano: planoEscolhido,
+        statusPagamento: 'pendente', // <-- Já cria como pendente
         donoId: usuario.uid,
         donoEmail: usuario.email,
         criadoEm: new Date()
       });
 
-      // 2. Cria os serviços padrão baseados no nicho
+      // Cria os serviços padrão baseados no nicho
       const servicosPadrao = {
         barbearia: [
           { nome: 'Corte Clássico', duracao: 30, preco: 60 },
           { nome: 'Corte + Barba', duracao: 60, preco: 100 },
-          { nome: 'Barba Terapia', duracao: 45, preco: 70 },
         ],
         manicure: [
           { nome: 'Manicure Simples', duracao: 40, preco: 40 },
           { nome: 'Pedicure', duracao: 40, preco: 40 },
-          { nome: 'Alongamento em Gel', duracao: 90, preco: 150 },
         ],
         tatuador: [
           { nome: 'Sessão Pequena', duracao: 60, preco: 200 },
           { nome: 'Sessão Média', duracao: 120, preco: 400 },
-          { nome: 'Sessão Grande', duracao: 240, preco: 800 },
         ],
         estetica: [
           { nome: 'Limpeza de Pele', duracao: 60, preco: 120 },
-          { nome: 'Design de Sobrancelha', duracao: 30, preco: 50 },
         ],
         pet: [
           { nome: 'Banho Pequeno Porte', duracao: 60, preco: 60 },
-          { nome: 'Tosa Higiênica', duracao: 45, preco: 70 },
         ]
       };
 
@@ -133,7 +133,7 @@ export default function CriarLoja() {
         });
       }
 
-      alert(`✅ Loja criada com sucesso!\nOs serviços padrão do nicho "${nicho}" já foram adicionados.`);
+      alert(`✅ Loja criada com sucesso!`);
       navigate('/checkout'); 
       
     } catch (error) {
@@ -144,14 +144,16 @@ export default function CriarLoja() {
     }
   }
 
-  if (usuario === undefined || carregando) {
-    return <p style={{ textAlign: 'center', marginTop: '50px', color: 'var(--muted)' }}>Carregando dados da loja...</p>;
+  // Se o usuário ainda não foi carregado (undefined), mostra o carregando
+  if (usuario === undefined) {
+    return <p style={{ textAlign: 'center', marginTop: '50px', color: 'var(--muted)' }}>Verificando login...</p>;
   }
 
+  // Se o usuário for null (não logado), mostra o bloqueio
   if (usuario === null) {
     return (
       <div style={{ textAlign: 'center', marginTop: '100px' }}>
-        <h2 style={{ color: 'var(--gold)', marginBottom: '20px' }}>Acesso Restrito</h2>
+        <h2 style={{ color: 'var(--primary)', marginBottom: '20px' }}>Acesso Restrito</h2>
         <p style={{ color: 'var(--muted)', marginBottom: '30px' }}>Você precisa estar logado para criar sua loja.</p>
         <button 
           className="btn-primary" 
@@ -164,6 +166,11 @@ export default function CriarLoja() {
         </button>
       </div>
     );
+  }
+
+  // Se estiver logado, mostra o carregamento dos dados da loja (se houver)
+  if (carregando) {
+    return <p style={{ textAlign: 'center', marginTop: '50px', color: 'var(--muted)' }}>Carregando dados da loja...</p>;
   }
 
   return (
@@ -181,7 +188,6 @@ export default function CriarLoja() {
             <input type="text" value={nomeLoja} onChange={e => { setNomeLoja(e.target.value); gerarSlug(e.target.value); }} placeholder="Ex: Agendaê Studio" required />
           </div>
 
-          {/* NOVO CAMPO: TIPO DE NEGÓCIO */}
           <div className="input-group">
             <label>Tipo de Negócio</label>
             <select 

@@ -54,6 +54,7 @@ export default function Planos() {
 
   function escolherPlano(planoId) {
     localStorage.setItem('planoEscolhido', planoId);
+    localStorage.setItem('intencao', 'profissional'); // <-- ESSA LINHA FALTAVA
     localStorage.setItem('abrirLogin', 'true');
     navigate('/');
   }

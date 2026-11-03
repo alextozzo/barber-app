@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { db, auth } from '../firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { CheckCircle, ShieldCheck, QrCode, ArrowLeft } from 'lucide-react';
 import './Checkout.css';
@@ -13,8 +13,12 @@ export default function Checkout() {
   const [usuario, setUsuario] = useState(undefined);
   const navigate = useNavigate();
 
-  // Link de exemplo do Mercado Pago (troque pelo seu depois)
-  const LINK_MERCADO_PAGO = "https://mpago.la/2ExemploDeLink";
+  // LINKS DO MERCADO PAGO (já preenchidos)
+  const LINKS_MERCADO_PAGO = {
+    basico: 'https://mpago.la/2nmH9UF',
+    pro: 'https://mpago.la/182JXdi',
+    premium: 'https://mpago.la/28SSsBf'
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -30,11 +34,9 @@ export default function Checkout() {
         return;
       }
 
-      // Pega o plano escolhido no localStorage
       const planoSalvo = localStorage.getItem('planoEscolhido') || 'basico';
       setPlano(planoSalvo);
 
-      // Pega os dados da loja no Firebase
       try {
         const docRef = doc(db, "barbearias", usuario.uid);
         const docSnap = await getDoc(docRef);
@@ -50,23 +52,36 @@ export default function Checkout() {
     fetchDados();
   }, [usuario]);
 
-  // Função para simular a aprovação do pagamento (no futuro, o Mercado Pago faz isso via webhook)
+  // Função para simular a aprovação do pagamento (enquanto o webhook não chega)
   async function simularPagamento() {
     if (!usuario) return;
     try {
       const docRef = doc(db, "barbearias", usuario.uid);
-      await updateDoc(docRef, { statusPagamento: 'pendente' });
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        await setDoc(docRef, {
+          nome: "Minha Loja",
+          donoId: usuario.uid,
+          donoEmail: usuario.email,
+          statusPagamento: 'pendente',
+          criadoEm: new Date()
+        });
+      } else {
+        await updateDoc(docRef, { statusPagamento: 'pendente' });
+      }
+
       alert("✅ Pagamento enviado para análise!\n\nAssim que for aprovado, sua loja será liberada.");
-      navigate('/painel'); // Manda para o painel
+      navigate('/painel'); 
     } catch (error) {
-      console.error(error);
-      alert("Erro ao registrar pagamento.");
+      console.error("Erro ao registrar pagamento:", error);
+      alert("Erro ao registrar pagamento. Tente novamente.");
     }
   }
 
   const precos = { basico: '29,90', pro: '49,90', premium: '79,90' };
 
-  if (carregando) return <p style={{ padding: '50px', textAlign: 'center', color: 'var(--gold)' }}>Carregando...</p>;
+  if (carregando) return <p style={{ padding: '50px', textAlign: 'center', color: 'var(--primary)' }}>Carregando...</p>;
   if (!usuario) return <p style={{ padding: '50px', textAlign: 'center', color: 'var(--danger)' }}>Faça login para continuar.</p>;
 
   return (
@@ -77,9 +92,9 @@ export default function Checkout() {
         </Link>
 
         <header className="checkout-header">
-          <ShieldCheck size={40} color="var(--gold)" />
+          <ShieldCheck size={40} color="var(--primary)" />
           <h1>Finalizar Assinatura</h1>
-          <p>Você está a um passo de colocar sua barbearia no ar.</p>
+          <p>Você está a um passo de colocar sua loja no ar.</p>
         </header>
 
         <div className="resumo-pedido">
@@ -88,7 +103,7 @@ export default function Checkout() {
             <strong style={{ textTransform: 'capitalize' }}>{plano}</strong>
           </div>
           <div className="resumo-row">
-            <span>Barbearia</span>
+            <span>Estabelecimento</span>
             <strong>{loja?.nome || 'Sua Loja'}</strong>
           </div>
           <div className="resumo-row total">
@@ -101,7 +116,7 @@ export default function Checkout() {
           <h3>Como deseja pagar?</h3>
           
           <a 
-            href={LINK_MERCADO_PAGO} 
+            href={LINKS_MERCADO_PAGO[plano]} 
             target="_blank" 
             rel="noreferrer" 
             className="btn-pagamento mercadopago"

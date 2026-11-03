@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { auth, db } from '../firebase'; 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom'; // <-- IMPORT DO NAVIGATE
+import { useNavigate } from 'react-router-dom';
 import './LoginModal.css';
 
 export default function LoginModal({ onClose }) {
@@ -14,7 +14,7 @@ export default function LoginModal({ onClose }) {
   const [password, setPassword] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
-  const navigate = useNavigate(); // <-- HOOK DO NAVIGATE
+  const navigate = useNavigate();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -35,15 +35,15 @@ export default function LoginModal({ onClose }) {
         });
       }
       
-      // Verifica a intenção (se ele veio da tela de Planos)
+      // Verifica a intenção (profissional)
       const intencao = localStorage.getItem('intencao');
       
-      if (intencao === 'barbeiro') {
-        localStorage.removeItem('intencao'); // Limpa a intenção
-        onClose(); // Fecha o modal
-        navigate('/criar-loja'); // Redireciona para a loja
+      if (intencao === 'profissional') { // <-- CORRIGIDO AQUI
+        localStorage.removeItem('intencao');
+        onClose(); 
+        setTimeout(() => navigate('/criar-loja'), 500);
       } else {
-        onClose(); // Apenas fecha o modal
+        onClose(); 
       }
 
     } catch (error) {

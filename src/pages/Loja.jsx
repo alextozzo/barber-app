@@ -32,6 +32,14 @@ export default function Loja() {
         
         if (!querySnapshot.empty) {
           const dadosLoja = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
+          
+          // TRAVA DE PAGAMENTO: Se não estiver ativo, bloqueia a loja
+          if (dadosLoja.statusPagamento !== 'ativo') {
+            setErro("Esta página está temporariamente indisponível. O profissional precisa regularizar a assinatura.");
+            setCarregando(false);
+            return;
+          }
+
           setLoja(dadosLoja);
         } else {
           setErro("Estabelecimento não encontrado. Verifique o link.");
@@ -54,18 +62,16 @@ export default function Loja() {
     }
   }, [loja]);
 
-  if (carregando) return <div style={{ padding: '50px', textAlign: 'center', color: 'var(--gold)' }}>Carregando...</div>;
+  if (carregando) return <div style={{ padding: '50px', textAlign: 'center', color: 'var(--primary)' }}>Carregando...</div>;
   if (erro) return <div style={{ padding: '50px', textAlign: 'center', color: 'var(--danger)' }}>{erro}</div>;
   if (!loja) return null;
 
-  // Define as especialidades baseadas no nicho
   const especialidades = loja.nicho === 'barbearia' ? ['Corte', 'Barba'] : 
                          loja.nicho === 'manicure' ? ['Manicure', 'Pedicure'] : 
                          loja.nicho === 'tatuador' ? ['Tatuagem', 'Piercing'] : 
                          loja.nicho === 'estetica' ? ['Estética', 'Sobrancelha'] :
                          loja.nicho === 'pet' ? ['Banho', 'Tosa'] : ['Serviços'];
 
-  // Objeto "barbeiro" completo para o BookingModal
   const barbeiro = {
     id: loja.donoId,
     name: loja.nome,
@@ -73,7 +79,7 @@ export default function Loja() {
     photo: loja.fotoUrl || 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=400',
     rating: 5.0,
     reviews: 0,
-    specialties: especialidades, // Usando a variável correta
+    specialties: especialidades,
     abertura: loja.abertura || '09:00',
     fechamento: loja.fechamento || '19:00',
     almocoInicio: loja.almocoInicio || '12:00',
@@ -85,7 +91,7 @@ export default function Loja() {
       <nav className="navbar-loja">
         <div className="nav-container">
           <Link to="/" className="logo">
-            <Store size={24} color="var(--gold)" />
+            <Store size={24} color="var(--primary)" />
             <span>VOLTAR PARA O INÍCIO</span>
           </Link>
           <div className="nav-actions">
@@ -106,7 +112,7 @@ export default function Loja() {
           <div className="loja-info">
             <h1>{loja.nome}</h1>
             <div className="rating">
-              <Star size={16} fill="var(--gold)" color="var(--gold)" />
+              <Star size={16} fill="var(--primary)" color="var(--primary)" />
               <span>{barbeiro.rating}</span>
               <span className="reviews">(novo no app)</span>
             </div>

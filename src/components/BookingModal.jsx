@@ -15,8 +15,6 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
   const [user, setUser] = useState(undefined); 
   const [salvando, setSalvando] = useState(false);
   const [carregandoServicos, setCarregandoServicos] = useState(true);
-  
-  // NOVO: Estado para guardar os horários que já estão ocupados
   const [horariosOcupados, setHorariosOcupados] = useState([]); 
 
   useEffect(() => {
@@ -26,7 +24,6 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
     return () => unsubscribe();
   }, []);
 
-  // Puxa os serviços do barbeiro
   useEffect(() => {
     async function fetchServicos() {
       if (!barber.id) return;
@@ -47,7 +44,6 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
     fetchServicos();
   }, [barber.id]);
 
-  // NOVO: Busca os horários ocupados quando o cliente escolhe uma data
   useEffect(() => {
     async function buscarHorariosOcupados() {
       if (!selectedDate || !barber.id) return;
@@ -64,7 +60,6 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
         const querySnapshot = await getDocs(q);
         const ocupados = [];
         querySnapshot.forEach((doc) => {
-          // Se o agendamento não foi cancelado, o horário está ocupado
           if (doc.data().status !== 'cancelado') {
             ocupados.push(doc.data().horario);
           }
@@ -96,10 +91,9 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
       return;
     }
 
-    // Verificação final de segurança (caso alguém tenha agendado enquanto ele escolhia)
     if (horariosOcupados.includes(selectedTime)) {
       alert('⚠️ Este horário acabou de ser ocupado por outra pessoa. Escolha outro.');
-      setStep(2); // Volta para a tela de escolher horário
+      setStep(2);
       return;
     }
 
@@ -124,11 +118,11 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
         preco: selectedService.preco,
         data: selectedDate.toLocaleDateString('pt-BR'),
         horario: selectedTime,
-        status: 'confirmado',
+        status: 'pagamento_pendente',
         criadoEm: new Date()
       });
 
-      alert(`✅ Agendamento confirmado com sucesso!`);
+      alert(`✅ Agendamento realizado!\n\nO profissional foi avisado que você já pagou via Pix.`);
       onClose();
     } catch (error) {
       console.error("Erro ao salvar:", error);
@@ -154,7 +148,7 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
         <div className="modal-content" onClick={e => e.stopPropagation()}>
           <button className="modal-close" onClick={onClose}><X size={22} /></button>
           <div style={{ textAlign: 'center', padding: '30px 10px' }}>
-            <Lock size={48} color="var(--gold)" style={{ margin: '0 auto 20px' }} />
+            <Lock size={48} color="var(--primary)" style={{ margin: '0 auto 20px' }} />
             <h2 style={{ color: 'var(--cream)', marginBottom: '10px' }}>Acesso Restrito</h2>
             <p style={{ color: 'var(--muted)', marginBottom: '30px' }}>
               Para agendar seu horário com <strong>{barber.name}</strong>, você precisa entrar na sua conta.
@@ -193,7 +187,7 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
             {carregandoServicos ? (
               <p style={{ color: 'var(--muted)' }}>Carregando serviços...</p>
             ) : services.length === 0 ? (
-              <p style={{ color: 'var(--danger)' }}>Este barbeiro ainda não cadastrou serviços.</p>
+              <p style={{ color: 'var(--danger)' }}>Este profissional ainda não cadastrou serviços.</p>
             ) : (
               <div className="service-list">
                 {services.map(s => (
@@ -231,7 +225,7 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
                     key={t} 
                     className={`time-btn ${selectedTime === t ? 'active' : ''}`} 
                     onClick={() => setSelectedTime(t)}
-                    disabled={isOcupado} // Desabilita se estiver ocupado
+                    disabled={isOcupado}
                     style={isOcupado ? { opacity: 0.3, textDecoration: 'line-through', cursor: 'not-allowed' } : {}}
                   >
                     {t}
@@ -250,16 +244,21 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
           <div>
             <h3 className="step-title">3. Confirmar agendamento</h3>
             <div className="summary">
-              <div className="summary-row"><span>Barbeiro</span><strong>{barber.name}</strong></div>
+              <div className="summary-row"><span>Profissional</span><strong>{barber.name}</strong></div>
               <div className="summary-row"><span>Serviço</span><strong>{selectedService.nome}</strong></div>
               <div className="summary-row"><span>Data</span><strong>{selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</strong></div>
               <div className="summary-row"><span>Horário</span><strong>{selectedTime}</strong></div>
               <div className="summary-row total"><span>Total</span><strong>R$ {selectedService.preco},00</strong></div>
             </div>
+            
+            <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '16px', textAlign: 'center' }}>
+              Faça o Pix para a chave do profissional e clique em <strong>"Já Paguei"</strong>.
+            </p>
+
             <div className="button-row">
               <button className="btn-outline" onClick={() => setStep(2)}>Voltar</button>
               <button className="btn-primary" onClick={confirm} disabled={salvando}>
-                {salvando ? 'Salvando...' : 'Confirmar e Pagar'}
+                {salvando ? 'Salvando...' : 'Já Paguei e Confirmar'}
               </button>
             </div>
           </div>

@@ -16,6 +16,7 @@ export default function CriarLoja() {
   const [instagram, setInstagram] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [formasPagamento, setFormasPagamento] = useState([]);
+  const [chavePix, setChavePix] = useState(''); // <-- NOVO ESTADO PIX
 
   const [abertura, setAbertura] = useState('09:00');
   const [fechamento, setFechamento] = useState('19:00');
@@ -57,6 +58,7 @@ export default function CriarLoja() {
           setInstagram(data.instagram || '');
           setWhatsapp(data.whatsapp || '');
           setFormasPagamento(data.formasPagamento || []);
+          setChavePix(data.chavePix || ''); // <-- PUXA A CHAVE PIX
           setAbertura(data.abertura || '09:00');
           setFechamento(data.fechamento || '19:00');
           setAlmocoInicio(data.almocoInicio || '12:00');
@@ -105,6 +107,7 @@ export default function CriarLoja() {
         instagram: instagram,
         whatsapp: whatsapp,
         formasPagamento: formasPagamento,
+        chavePix: chavePix, // <-- SALVA A CHAVE PIX
         abertura: abertura,
         fechamento: fechamento,
         almocoInicio: almocoInicio,
@@ -230,6 +233,17 @@ export default function CriarLoja() {
               <label><Phone size={14} /> WhatsApp</label>
               <input type="tel" value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="(11) 99999-9999" />
             </div>
+          </div>
+
+          {/* NOVO CAMPO: CHAVE PIX */}
+          <div className="input-group">
+            <label><DollarSign size={14} /> Chave Pix (para receber dos clientes)</label>
+            <input 
+              type="text" 
+              value={chavePix} 
+              onChange={e => setChavePix(e.target.value)} 
+              placeholder="CPF, e-mail, telefone ou chave aleatória" 
+            />
           </div>
 
           <div className="input-group">

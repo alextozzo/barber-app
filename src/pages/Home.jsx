@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useLocation, Link, useNavigate } from 'react-router-dom'; // <-- useNavigate adicionado
-import { Scissors, Smartphone, Share2, CalendarCheck, Sparkles, Store, Link as LinkIcon, Users, Award, ArrowRight } from 'lucide-react';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { Sparkles, Smartphone, CalendarCheck, Users, Award, ArrowRight, Link as LinkIcon } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import LoginModal from '../components/LoginModal';
@@ -8,7 +8,7 @@ import LoginModal from '../components/LoginModal';
 export default function Home() {
   const [loginOpen, setLoginOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate(); // <-- navigate declarado
+  const navigate = useNavigate();
 
   useEffect(() => {
     const abrirLogin = localStorage.getItem('abrirLogin');
@@ -25,7 +25,6 @@ export default function Home() {
         onBookClick={() => setLoginOpen(true)} 
       />
       
-      {/* Botão do Hero agora leva para Planos */}
       <Hero onBookClick={() => navigate('/planos')} />
 
       <section className="section-features">
@@ -91,7 +90,7 @@ export default function Home() {
         
         <div className="nichos-grid">
           <div className="nicho-item">
-            <Scissors size={32} color="var(--primary)" />
+            <Sparkles size={32} color="var(--primary)" />
             <h4>Barbearias</h4>
           </div>
           <div className="nicho-item">

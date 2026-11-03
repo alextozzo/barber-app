@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LogOut, Calendar, DollarSign, Users, Scissors, Award } from 'lucide-react';
+import { LogOut, Calendar, Users, Briefcase, Award, CreditCard, Store, BarChart2 } from 'lucide-react';
 import './Layout.css';
 
 export default function Layout() {
@@ -8,27 +8,34 @@ export default function Layout() {
   return (
     <div className="dashboard-container">
       <aside className="sidebar">
-        <div className="sidebar-logo">NAVALHA d'Or</div>
+        <div className="sidebar-logo">
+          <Store size={20} color="var(--primary)" style={{ marginBottom: '8px' }} />
+          <span>Quero1<em>Horario</em></span>
+        </div>
         <nav>
           <Link to="/painel" className={location.pathname === '/painel' ? 'active' : ''}>
             <Calendar size={18} /> Agenda
           </Link>
+          
+          {/* ÍCONE NEUTRO: Briefcase no lugar de Scissors */}
           <Link to="/servicos" className={location.pathname === '/servicos' ? 'active' : ''}>
-            <Scissors size={18} /> Serviços
+            <Briefcase size={18} /> Serviços
           </Link>
           
-          {/* NOVO LINK: Equipe */}
           <Link to="/equipe" className={location.pathname === '/equipe' ? 'active' : ''}>
             <Users size={18} /> Equipe
           </Link>
-
-          {/* LINK: Fidelidade */}
           <Link to="/fidelidade" className={location.pathname === '/fidelidade' ? 'active' : ''}>
             <Award size={18} /> Fidelidade
           </Link>
+          <Link to="/assinaturas" className={location.pathname === '/assinaturas' ? 'active' : ''}>
+            <CreditCard size={18} /> Assinaturas
+          </Link>
+          <Link to="/financeiro" className={location.pathname === '/financeiro' ? 'active' : ''}>
+            <BarChart2 size={18} /> Financeiro
+          </Link>
 
           <a href="#"><Users size={18} /> Clientes</a>
-          <a href="#"><DollarSign size={18} /> Financeiro</a>
         </nav>
         <Link to="/" className="btn-outline logout-btn">
           <LogOut size={16} /> Sair

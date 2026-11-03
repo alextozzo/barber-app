@@ -2,7 +2,7 @@ import { X } from 'lucide-react';
 import { useState } from 'react';
 import { auth, db } from '../firebase'; 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import './LoginModal.css';
 
@@ -22,10 +22,12 @@ export default function LoginModal({ onClose }) {
     setCarregando(true);
 
     try {
+      let userCredential;
+      
       if (mode === 'login') {
-        await signInWithEmailAndPassword(auth, email, password);
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
       } else {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: nome });
         await setDoc(doc(db, "clientes", userCredential.user.uid), {
           nome: nome,
@@ -35,16 +37,31 @@ export default function LoginModal({ onClose }) {
         });
       }
       
-      // SALVA A FLAG DE LOGADO
       localStorage.setItem('logado', 'true');
 
-      // Verifica a intenção
       const intencao = localStorage.getItem('intencao');
       
       if (intencao === 'profissional') {
         localStorage.removeItem('intencao');
         onClose(); 
-        setTimeout(() => navigate('/criar-loja'), 500);
+        
+        // Verifica a loja
+        const lojaRef = doc(db, "barbearias", userCredential.user.uid);
+        const lojaSnap = await getDoc(lojaRef);
+
+        setTimeout(() => {
+          if (lojaSnap.exists()) {
+            const dadosLoja = lojaSnap.data();
+            if (dadosLoja.statusPagamento === 'ativo') {
+              navigate('/painel'); // Já pagou, vai pro painel
+            } else {
+              navigate('/checkout'); // Não pagou, vai pro checkout
+            }
+          } else {
+            navigate('/criar-loja'); // Não tem loja, vai criar
+          }
+        }, 500);
+
       } else {
         onClose(); 
       }

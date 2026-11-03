@@ -1,0 +1,44 @@
+.assinaturas-container { padding: 40px; max-width: 900px; margin: 0 auto; }
+.assinaturas-header { margin-bottom: 32px; }
+.assinaturas-header h1 { font-size: 32px; color: var(--cream); margin-bottom: 8px; }
+.assinaturas-header p { color: var(--muted); }
+
+.assinaturas-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+.form-assinatura h3, .lista-assinaturas h3 {
+  font-size: 18px;
+  color: var(--primary);
+  margin-bottom: 20px;
+}
+
+.input-group { margin-bottom: 16px; }
+.input-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+.input-group input {
+  width: 100%;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  color: var(--cream);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.input-group input:focus { outline: none; border-color: var(--primary); }
+.input-row { display: flex; gap: 16px; }
+.input-row .input-group { flex: 1; }
+
+.btn-primary.full { width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 10px; }
+
+.lista-assinaturas { display: flex; flex-direction: column; gap: 12px; }
+.assinatura-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; }
+.assinatura-info h4 { font-size: 16px; color: var(--cream); margin-bottom: 8px; }
+.assinatura-detalhes { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
+.assinatura-detalhes span { display: flex; align-items: center; gap: 4px; }
+
+@media (max-width: 768px) {
+  .assinaturas-content { grid-template-columns: 1fr; }
+}

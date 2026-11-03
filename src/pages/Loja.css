@@ -3,6 +3,7 @@
   padding: 16px 0;
   border-bottom: 1px solid var(--border);
 }
+
 .navbar-loja .nav-container {
   max-width: 1000px;
   margin: 0 auto;
@@ -11,6 +12,7 @@
   align-items: center;
   padding: 0 24px;
 }
+
 .navbar-loja .logo {
   display: flex;
   align-items: center;
@@ -20,11 +22,13 @@
   font-size: 12px;
   letter-spacing: 2px;
 }
+
 .loja-main {
   max-width: 1000px;
   margin: 40px auto;
   padding: 0 24px;
 }
+
 .loja-header {
   display: flex;
   align-items: center;
@@ -32,35 +36,117 @@
   padding: 40px;
   margin-bottom: 40px;
 }
+
 .loja-avatar img {
   width: 120px;
   height: 120px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--gold);
+  border: 2px solid var(--primary);
 }
+
 .loja-info { flex: 1; }
 .loja-info h1 { font-size: 36px; margin-bottom: 8px; }
-.loja-info .rating { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--gold); }
+.loja-info .rating { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--primary); }
 .loja-info p { color: var(--muted); font-size: 14px; }
 
-@media (max-width: 768px) {
-  .loja-header { flex-direction: column; text-align: center; }
-}/* Banner de Marketing */
+/* INFORMAÇÕES DA LOJA */
+.loja-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.info-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.info-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.info-card h4 {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.info-card p, .info-card a {
+  color: var(--cream);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+/* HORÁRIO E PAGAMENTO */
+.loja-detalhes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.detalhes-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary);
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.horario-linha {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 14px;
+}
+.horario-linha span { color: var(--muted); }
+.horario-linha strong { color: var(--cream); }
+
+.pagamento-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pagamento-tag {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--primary);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Banner de Marketing */
 .banner-marketing {
   margin-top: 60px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 32px;
-  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(201, 169, 97, 0.05) 100%);
-  border: 1px dashed var(--gold);
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.05) 100%);
+  border: 1px dashed var(--primary);
   border-radius: 8px;
 }
 
 .banner-content h3 {
   font-size: 20px;
-  color: var(--gold);
+  color: var(--primary);
   margin-bottom: 8px;
 }
 
@@ -70,10 +156,9 @@
   max-width: 500px;
 }
 
+/* RESPONSIVO */
 @media (max-width: 768px) {
-  .banner-marketing {
-    flex-direction: column;
-    text-align: center;
-    gap: 20px;
-  }
+  .loja-header { flex-direction: column; text-align: center; }
+  .loja-detalhes-grid { grid-template-columns: 1fr; }
+  .banner-marketing { flex-direction: column; text-align: center; gap: 20px; }
 }

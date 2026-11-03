@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { db, auth } from '../firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Store, Star } from 'lucide-react';
+import { Store, Star, MapPin, Phone, AtSign, Clock, CreditCard, DollarSign } from 'lucide-react';
 import BookingModal from '../components/BookingModal';
 import LoginModal from '../components/LoginModal';
 import './Loja.css';
@@ -16,6 +16,8 @@ export default function Loja() {
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [user, setUser] = useState(undefined);
+  const [mediaAvaliacao, setMediaAvaliacao] = useState(5.0);
+  const [totalAvaliacoes, setTotalAvaliacoes] = useState(0);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -33,7 +35,6 @@ export default function Loja() {
         if (!querySnapshot.empty) {
           const dadosLoja = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
           
-          // TRAVA DE PAGAMENTO: Se não estiver ativo, bloqueia a loja
           if (dadosLoja.statusPagamento !== 'ativo') {
             setErro("Esta página está temporariamente indisponível. O profissional precisa regularizar a assinatura.");
             setCarregando(false);
@@ -54,12 +55,33 @@ export default function Loja() {
     buscarLoja();
   }, [slug]);
 
+  // CORREÇÃO DA COR: Aplica azul padrão ou cor personalizada
   useEffect(() => {
-    if (loja && loja.corPrincipal) {
-      document.documentElement.style.setProperty('--gold', loja.corPrincipal);
-    } else {
-      document.documentElement.style.setProperty('--gold', '#C9A961');
+    const corFinal = loja?.corPrincipal || '#3B82F6'; 
+    document.documentElement.style.setProperty('--primary', corFinal);
+    document.documentElement.style.setProperty('--gold', corFinal);
+  }, [loja]);
+
+  // CALCULA A MÉDIA DE AVALIAÇÕES
+  useEffect(() => {
+    async function calcularMedia() {
+      if (!loja) return;
+      const q = query(
+        collection(db, "agendamentos"), 
+        where("barbeiroId", "==", loja.donoId),
+        where("avaliacao", "!=", null)
+      );
+      const snapshot = await getDocs(q);
+      const avaliacoes = [];
+      snapshot.forEach(doc => avaliacoes.push(doc.data().avaliacao));
+      
+      if (avaliacoes.length > 0) {
+        const soma = avaliacoes.reduce((acc, nota) => acc + nota, 0);
+        setMediaAvaliacao(soma / avaliacoes.length);
+        setTotalAvaliacoes(avaliacoes.length);
+      }
     }
+    calcularMedia();
   }, [loja]);
 
   if (carregando) return <div style={{ padding: '50px', textAlign: 'center', color: 'var(--primary)' }}>Carregando...</div>;
@@ -77,8 +99,8 @@ export default function Loja() {
     name: loja.nome,
     title: loja.nicho || 'Profissional',
     photo: loja.fotoUrl || 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=400',
-    rating: 5.0,
-    reviews: 0,
+    rating: mediaAvaliacao,
+    reviews: totalAvaliacoes,
     specialties: especialidades,
     abertura: loja.abertura || '09:00',
     fechamento: loja.fechamento || '19:00',
@@ -113,14 +135,93 @@ export default function Loja() {
             <h1>{loja.nome}</h1>
             <div className="rating">
               <Star size={16} fill="var(--primary)" color="var(--primary)" />
-              <span>{barbeiro.rating}</span>
-              <span className="reviews">(novo no app)</span>
+              <span>{mediaAvaliacao.toFixed(1)}</span>
+              <span className="reviews">({totalAvaliacoes} avaliações)</span>
             </div>
             <p style={{ textTransform: 'capitalize' }}>Especialidades: {barbeiro.specialties.join(', ')}</p>
           </div>
           <button className="btn-primary" onClick={() => setSelectedBarber(barbeiro)}>
             Agendar Horário
           </button>
+        </div>
+
+        <div className="loja-info-grid">
+          {loja.endereco && (
+            <div className="info-card card">
+              <div className="info-icon"><MapPin size={20} /></div>
+              <div>
+                <h4>Localização</h4>
+                <p>{loja.endereco}</p>
+              </div>
+            </div>
+          )}
+          {loja.whatsapp && (
+            <div className="info-card card">
+              <div className="info-icon"><Phone size={20} /></div>
+              <div>
+                <h4>WhatsApp</h4>
+                <a href={`https://wa.me/55${loja.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)' }}>
+                  {loja.whatsapp}
+                </a>
+              </div>
+            </div>
+          )}
+          {loja.instagram && (
+            <div className="info-card card">
+              <div className="info-icon"><AtSign size={20} /></div>
+              <div>
+                <h4>Instagram</h4>
+                <a href={`https://instagram.com/${loja.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)' }}>
+                  {loja.instagram}
+                </a>
+              </div>
+            </div>
+          )}
+          {loja.chavePix && (
+            <div className="info-card card">
+              <div className="info-icon"><DollarSign size={20} /></div>
+              <div>
+                <h4>Chave Pix</h4>
+                <p>{loja.chavePix}</p>
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(loja.chavePix);
+                    alert('Chave Pix copiada!');
+                  }}
+                  style={{ background: 'none', color: 'var(--primary)', fontSize: '12px', marginTop: '4px', padding: 0, textDecoration: 'underline' }}
+                >
+                  Copiar chave
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="loja-detalhes-grid">
+          <div className="detalhes-card card">
+            <h3><Clock size={18} /> Horário de Atendimento</h3>
+            <div className="horario-linha">
+              <span>Segunda a Sábado</span>
+              <strong>{loja.abertura} - {loja.fechamento}</strong>
+            </div>
+            <div className="horario-linha">
+              <span>Almoço</span>
+              <strong>{loja.almocoInicio} - {loja.almocoFim}</strong>
+            </div>
+          </div>
+
+          <div className="detalhes-card card">
+            <h3><CreditCard size={18} /> Formas de Pagamento</h3>
+            <div className="pagamento-tags">
+              {loja.formasPagamento && loja.formasPagamento.length > 0 ? (
+                loja.formasPagamento.map(forma => (
+                  <span key={forma} className="pagamento-tag">{forma}</span>
+                ))
+              ) : (
+                <p style={{ color: 'var(--muted)' }}>Não informado.</p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="loja-servicos">

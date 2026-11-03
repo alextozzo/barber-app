@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
-import { Calendar, Award, Star, LogOut } from 'lucide-react'; // <-- Star importada aqui
+import { collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { Calendar, Award, Star, LogOut } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import './MinhaConta.css';
 
@@ -57,6 +57,26 @@ export default function MinhaConta() {
     navigate('/');
   }
 
+  async function avaliarServico(agendamentoId, nota) {
+    try {
+      const agendamentoRef = doc(db, "agendamentos", agendamentoId);
+      await updateDoc(agendamentoRef, { 
+        avaliacao: nota,
+        avaliadoEm: new Date()
+      });
+      
+      // Atualiza a lista localmente para não precisar recarregar
+      setAgendamentos(prev => prev.map(ag => 
+        ag.id === agendamentoId ? { ...ag, avaliacao: nota } : ag
+      ));
+      
+      alert(`⭐ Obrigado! Você avaliou com ${nota} estrelas.`);
+    } catch (error) {
+      console.error("Erro ao avaliar:", error);
+      alert("Erro ao enviar avaliação.");
+    }
+  }
+
   if (carregando) return <p style={{ padding: '50px', textAlign: 'center', color: 'var(--primary)' }}>Carregando...</p>;
   if (!usuario) return (
     <div style={{ textAlign: 'center', marginTop: '100px' }}>
@@ -84,6 +104,7 @@ export default function MinhaConta() {
       </header>
 
       <div className="conta-grid">
+        {/* CARTÃO FIDELIDADE */}
         <div className="fidelidade-card card">
           <h3><Award size={20} color="var(--primary)" /> Meu Cartão Fidelidade</h3>
           <div className="pontos-display">
@@ -96,7 +117,7 @@ export default function MinhaConta() {
                 key={index} 
                 className={`corte-slot ${index < (pontos % meta) ? 'preenchido' : ''}`}
               >
-                <Star size={16} /> {/* <-- ÍCONE TROCADO AQUI */}
+                <Star size={16} />
               </div>
             ))}
           </div>
@@ -107,6 +128,7 @@ export default function MinhaConta() {
           </p>
         </div>
 
+        {/* HISTÓRICO DE AGENDAMENTOS */}
         <div className="historico-card card">
           <h3><Calendar size={20} color="var(--primary)" /> Meus Agendamentos</h3>
           
@@ -120,6 +142,38 @@ export default function MinhaConta() {
                     <h4>{ag.servico}</h4>
                     <p>{ag.barbeiroNome} • {ag.data} às {ag.horario}</p>
                   </div>
+                  
+                  {/* ÁREA DE AVALIAÇÃO */}
+                  {ag.status === 'concluido' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                      {ag.avaliacao ? (
+                        <div style={{ display: 'flex', gap: '2px' }}>
+                          {[1, 2, 3, 4, 5].map(estrela => (
+                            <Star 
+                              key={estrela} 
+                              size={16} 
+                              fill={estrela <= ag.avaliacao ? "var(--primary)" : "none"} 
+                              color="var(--primary)" 
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          {[1, 2, 3, 4, 5].map(estrela => (
+                            <button 
+                              key={estrela} 
+                              onClick={() => avaliarServico(ag.id, estrela)}
+                              style={{ background: 'none', padding: 0, cursor: 'pointer' }}
+                              title={`Avaliar com ${estrela} estrelas`}
+                            >
+                              <Star size={18} color="var(--border)" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className={`status-badge ${ag.status === 'concluido' ? 'ativo' : 'pendente'}`}>
                     {ag.status === 'concluido' ? 'Concluído' : 'Agendado'}
                   </div>

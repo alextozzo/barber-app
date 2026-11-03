@@ -69,7 +69,6 @@ export default function Planos() {
   async function escolherPlano(planoId) {
     localStorage.setItem('planoEscolhido', planoId);
 
-    // Se o usuário JÁ ESTÁ LOGADO, atualiza o plano da loja dele
     if (user) {
       try {
         const lojaRef = doc(db, "barbearias", user.uid);
@@ -89,7 +88,6 @@ export default function Planos() {
       }
     }
 
-    // Se não está logado, segue o fluxo normal
     localStorage.setItem('intencao', 'profissional');
     localStorage.setItem('abrirLogin', 'true');
     navigate('/');
@@ -137,7 +135,6 @@ export default function Planos() {
         ))}
       </div>
 
-      {/* NOVA SEÇÃO: BENEFÍCIOS DO UPGRADE */}
       <section className="upgrade-beneficios">
         <div className="section-header">
           <span className="section-tagline">— Por que fazer Upgrade? —</span>

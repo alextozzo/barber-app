@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { Sparkles, Smartphone, CalendarCheck, Users, Award, ArrowRight, Link as LinkIcon } from 'lucide-react';
+import { Sparkles, Smartphone, CalendarCheck, Users, Award, ArrowRight, Link as LinkIcon, TrendingUp } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import LoginModal from '../components/LoginModal';
@@ -53,6 +53,12 @@ export default function Home() {
             <div className="feature-icon"><Award size={24} /></div>
             <h3>Cartão Fidelidade</h3>
             <p>Fidelize seus clientes com pontos e faça eles voltarem sempre.</p>
+          </div>
+          {/* NOVO CARD: RELATÓRIOS FINANCEIROS */}
+          <div className="feature-card card">
+            <div className="feature-icon"><TrendingUp size={24} /></div>
+            <h3>Relatórios Financeiros</h3>
+            <p>Acompanhe seu faturamento mês a mês e tome decisões baseadas em dados reais.</p>
           </div>
         </div>
       </section>

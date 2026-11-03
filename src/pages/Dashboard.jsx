@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDoc, increment } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Calendar, CheckCircle, Award, Clock, Bell, X } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, Lock, TrendingUp, DollarSign, Bell, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Dashboard() {
   const [agendamentos, setAgendamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [user, setUser] = useState(null);
+  const [plano, setPlano] = useState('basico');
   const [fidelidadeAtiva, setFidelidadeAtiva] = useState(false);
   const [proximoCliente, setProximoCliente] = useState(null);
   const [mostrarBannerNotificacao, setMostrarBannerNotificacao] = useState(false);
@@ -19,7 +21,6 @@ export default function Dashboard() {
     return () => unsubscribeAuth();
   }, []);
 
-  // Verifica permissão de notificação
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
       setMostrarBannerNotificacao(true);
@@ -41,17 +42,19 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    async function verificarFidelidade() {
+    async function verificarLoja() {
       if (!user) return;
       try {
         const lojaRef = doc(db, "barbearias", user.uid);
         const lojaSnap = await getDoc(lojaRef);
         if (lojaSnap.exists()) {
-          setFidelidadeAtiva(lojaSnap.data().fidelidadeAtiva || false);
+          const data = lojaSnap.data();
+          setPlano(data.plano || 'basico');
+          setFidelidadeAtiva(data.fidelidadeAtiva || false);
         }
       } catch (error) { console.error(error); }
     }
-    verificarFidelidade();
+    verificarLoja();
   }, [user]);
 
   useEffect(() => {
@@ -82,25 +85,62 @@ export default function Dashboard() {
       if (fidelidadeAtiva && clienteId) {
         const clienteRef = doc(db, "clientes", clienteId);
         await updateDoc(clienteRef, { pontos: increment(1) });
-        alert("Serviço concluído! O cliente ganhou 1 ponto de fidelidade.");
-      } else {
-        alert("Serviço concluído!");
       }
     } catch (error) {
       console.error(error);
-      alert("Erro ao concluir.");
     }
   }
 
-  const hora = new Date().getHours();
-  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+  // --- CÁLCULOS DE FATURAMENTO (MÊS ATUAL) ---
+  const hoje = new Date();
+  const mesAtual = hoje.getMonth();
+  const anoAtual = hoje.getFullYear();
+
+  const agendamentosDoMes = agendamentos.filter(ag => {
+    if (!ag.data) return false;
+    const [dia, mes, ano] = ag.data.split('/');
+    return Number(mes) - 1 === mesAtual && Number(ano) === anoAtual;
+  });
+
+  const faturamentoPrevisto = agendamentosDoMes
+    .filter(a => a.status !== 'concluido')
+    .reduce((acc, a) => acc + a.preco, 0);
+
+  const faturamentoRealizado = agendamentosDoMes
+    .filter(a => a.status === 'concluido')
+    .reduce((acc, a) => acc + a.preco, 0);
+
+  // Histórico de 6 meses
+  const historicoMeses = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    const mes = d.getMonth();
+    const ano = d.getFullYear();
+    
+    const totalMes = agendamentos
+      .filter(ag => {
+        if (!ag.data) return false;
+        const [dia, mesStr, anoStr] = ag.data.split('/');
+        return Number(mesStr) - 1 === mes && Number(anoStr) === ano && ag.status === 'concluido';
+      })
+      .reduce((acc, a) => acc + a.preco, 0);
+
+    historicoMeses.push({
+      mes: d.toLocaleDateString('pt-BR', { month: 'short' }),
+      total: totalMes
+    });
+  }
+  const maxFaturamento = Math.max(...historicoMeses.map(h => h.total), 1);
 
   if (carregando) return <p style={{ color: 'var(--primary)' }}>Carregando painel...</p>;
   if (!user) return <p>Faça login para acessar o painel.</p>;
 
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+
   return (
     <div className="dashboard-wrapper">
-      {/* BANNER DE NOTIFICAÇÃO */}
       {mostrarBannerNotificacao && (
         <div className="banner-notificacao card">
           <div className="banner-notif-content">
@@ -122,15 +162,54 @@ export default function Dashboard() {
       <header className="dashboard-header">
         <div>
           <h1>{saudacao}, {user.displayName ? user.displayName.split(' ')[0] : 'Profissional'}!</h1>
-          <p>Aqui está o resumo da sua agenda.</p>
-        </div>
-        <div className="resumo-card destaque">
-          <span>Faturamento Previsto</span>
-          <strong>
-            R$ {agendamentos.filter(a => a.status !== 'concluido').reduce((acc, a) => acc + a.preco, 0)},00
-          </strong>
+          <p>Aqui está o resumo do seu negócio.</p>
         </div>
       </header>
+
+      {/* CARDS DE FATURAMENTO */}
+      <div className="faturamento-grid">
+        <div className="faturamento-card card">
+          <div className="faturamento-icon"><DollarSign size={24} /></div>
+          <div>
+            <span>Faturamento Previsto (Mês)</span>
+            <strong>R$ {faturamentoPrevisto.toFixed(2).replace('.', ',')}</strong>
+          </div>
+        </div>
+        <div className="faturamento-card card destaque">
+          <div className="faturamento-icon"><TrendingUp size={24} /></div>
+          <div>
+            <span>Faturamento Realizado (Mês)</span>
+            <strong>R$ {faturamentoRealizado.toFixed(2).replace('.', ',')}</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* GRÁFICO DE HISTÓRICO (SÓ PRO E PREMIUM) */}
+      {plano === 'basico' ? (
+        <div className="bloqueio-pro card">
+          <Lock size={32} color="var(--primary)" />
+          <h3>Histórico de Faturamento</h3>
+          <p>Veja a evolução do seu negócio mês a mês. Disponível nos planos Pro e Premium.</p>
+          <Link to="/planos" className="btn-primary">Fazer Upgrade</Link>
+        </div>
+      ) : (
+        <div className="historico-grafico card">
+          <h3>Evolução dos Últimos 6 Meses</h3>
+          <div className="grafico-barras">
+            {historicoMeses.map((item, index) => (
+              <div key={index} className="barra-container">
+                <div 
+                  className="barra" 
+                  style={{ height: `${(item.total / maxFaturamento) * 100}%` }}
+                >
+                  <span className="barra-valor">R$ {item.total},00</span>
+                </div>
+                <span className="barra-mes">{item.mes}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {proximoCliente && (
         <div className="proximo-cliente-card">
@@ -153,17 +232,16 @@ export default function Dashboard() {
       )}
 
       <div className="agenda-list">
-        <h3 style={{ color: 'var(--cream)', marginBottom: '16px', fontSize: '18px' }}>Todos os Agendamentos</h3>
-        
+        <h3 style={{ color: 'var(--cream)', marginBottom: '16px', fontSize: '18px' }}>Agendamentos Recentes</h3>
         {agendamentos.length === 0 ? (
           <p style={{ color: 'var(--muted)' }}>Nenhum agendamento encontrado.</p>
         ) : (
-          agendamentos.map(ag => (
+          agendamentos.slice(0, 10).map(ag => (
             <div key={ag.id} className="agenda-item card" style={{ opacity: ag.status === 'concluido' ? 0.5 : 1 }}>
               <div className="hora">{ag.horario}</div>
               <div className="detalhes">
                 <h4>{ag.clienteNome}</h4>
-                <p>{ag.servico}</p>
+                <p>{ag.servico} • {ag.data}</p>
               </div>
               <div className="valor">R$ {ag.preco},00</div>
               
@@ -200,24 +278,99 @@ export default function Dashboard() {
         .btn-close-banner { background: none; color: var(--muted); padding: 4px; }
         .btn-close-banner:hover { color: var(--danger); }
 
-        .dashboard-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 40px;
-        }
+        .dashboard-header { margin-bottom: 32px; }
         .dashboard-header h1 { font-size: 32px; color: var(--cream); margin-bottom: 4px; }
         .dashboard-header p { color: var(--muted); }
 
-        .resumo-card.destaque {
-          background: var(--bg-card);
-          border: 1px solid var(--primary);
-          padding: 16px 24px;
-          border-radius: 12px;
-          text-align: right;
+        .faturamento-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 32px;
         }
-        .resumo-card span { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; }
-        .resumo-card strong { font-size: 24px; color: var(--primary); }
+        .faturamento-card {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 24px;
+        }
+        .faturamento-card.destaque {
+          border-color: var(--primary);
+          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.1) 100%);
+        }
+        .faturamento-icon {
+          width: 48px;
+          height: 48px;
+          background: rgba(59, 130, 246, 0.1);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--primary);
+        }
+        .faturamento-card span {
+          display: block;
+          font-size: 12px;
+          color: var(--muted);
+          text-transform: uppercase;
+          margin-bottom: 4px;
+        }
+        .faturamento-card strong {
+          font-size: 24px;
+          color: var(--cream);
+        }
+
+        .bloqueio-pro {
+          text-align: center;
+          padding: 40px;
+          margin-bottom: 32px;
+        }
+        .bloqueio-pro h3 { color: var(--cream); margin: 16px 0 8px; }
+        .bloqueio-pro p { color: var(--muted); margin-bottom: 20px; }
+
+        .historico-grafico {
+          padding: 32px;
+          margin-bottom: 32px;
+        }
+        .historico-grafico h3 { color: var(--cream); margin-bottom: 24px; }
+        .grafico-barras {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          height: 200px;
+          gap: 12px;
+        }
+        .barra-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          height: 100%;
+          justify-content: flex-end;
+        }
+        .barra {
+          width: 100%;
+          background: var(--primary);
+          border-radius: 6px 6px 0 0;
+          position: relative;
+          min-height: 4px;
+          transition: height 0.3s ease;
+        }
+        .barra-valor {
+          position: absolute;
+          top: -20px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 10px;
+          color: var(--muted);
+          white-space: nowrap;
+        }
+        .barra-mes {
+          margin-top: 8px;
+          font-size: 12px;
+          color: var(--muted);
+          text-transform: uppercase;
+        }
 
         .proximo-cliente-card {
           background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, var(--bg-card) 100%);
@@ -225,7 +378,6 @@ export default function Dashboard() {
           border-radius: 16px;
           padding: 24px;
           margin-bottom: 40px;
-          box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1);
         }
         .proximo-header {
           display: flex;
@@ -237,11 +389,7 @@ export default function Dashboard() {
           letter-spacing: 1px;
           margin-bottom: 16px;
         }
-        .proximo-body {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
+        .proximo-body { display: flex; justify-content: space-between; align-items: center; }
         .proximo-body h2 { font-size: 24px; color: var(--cream); margin-bottom: 4px; }
         .proximo-body p { color: var(--muted); font-size: 14px; }
 
@@ -253,11 +401,10 @@ export default function Dashboard() {
         .agenda-item .valor { font-weight: 600; color: var(--cream); margin-right: 20px; }
 
         @media (max-width: 768px) {
+          .faturamento-grid { grid-template-columns: 1fr; }
           .banner-notificacao { flex-direction: column; align-items: flex-start; gap: 12px; }
-          .dashboard-header { flex-direction: column; align-items: flex-start; gap: 16px; }
           .proximo-body { flex-direction: column; align-items: flex-start; gap: 16px; }
           .agenda-item { flex-direction: column; align-items: flex-start; gap: 12px; }
-          .agenda-item .valor { margin-right: 0; }
         }
       `}</style>
     </div>

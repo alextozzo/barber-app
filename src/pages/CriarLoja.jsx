@@ -19,7 +19,8 @@ export default function CriarLoja() {
   const [chavePix, setChavePix] = useState('');
   const [sobre, setSobre] = useState('');
 
-  const [galeria, setGaleria] = useState(['', '', '']); 
+  // Galeria começa com 5 espaços (para o Premium)
+  const [galeria, setGaleria] = useState(['', '', '', '', '']); 
   const [comodidades, setComodidades] = useState([]);
 
   const [abertura, setAbertura] = useState('09:00');
@@ -34,6 +35,9 @@ export default function CriarLoja() {
   const navigate = useNavigate();
 
   const planoEscolhido = localStorage.getItem('planoEscolhido') || 'basico';
+
+  // Define quantas fotos o plano permite
+  const limiteFotos = planoEscolhido === 'premium' ? 5 : planoEscolhido === 'pro' ? 3 : 0;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -64,7 +68,12 @@ export default function CriarLoja() {
           setFormasPagamento(data.formasPagamento || []);
           setChavePix(data.chavePix || '');
           setSobre(data.sobre || '');
-          setGaleria(data.galeria || ['', '', '']); 
+          
+          // Preenche a galeria com 5 espaços, puxando os dados salvos
+          const galeriaSalva = data.galeria || [];
+          const galeriaCompleta = Array(5).fill('').map((_, i) => galeriaSalva[i] || '');
+          setGaleria(galeriaCompleta);
+
           setComodidades(data.comodidades || []); 
           setAbertura(data.abertura || '09:00');
           setFechamento(data.fechamento || '19:00');
@@ -91,10 +100,9 @@ export default function CriarLoja() {
     setSlug(slugFormatado);
   }
 
-  // MÁSCARA DE WHATSAPP
   function handleWhatsApp(e) {
-    let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
-    if (value.length > 11) value = value.slice(0, 11); // Limita a 11 dígitos
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 11) value = value.slice(0, 11);
     
     if (value.length <= 10) {
       value = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
@@ -130,7 +138,6 @@ export default function CriarLoja() {
     e.preventDefault();
     if (!nomeLoja || !slug || !usuario) return;
 
-    // VALIDAÇÃO DE WHATSAPP
     if (whatsapp && whatsapp.replace(/\D/g, '').length < 10) {
       alert('WhatsApp inválido. Digite DDD + número.');
       return;
@@ -138,6 +145,9 @@ export default function CriarLoja() {
 
     setSalvando(true);
     try {
+      // Salva apenas as fotos permitidas pelo plano
+      const galeriaFinal = galeria.slice(0, limiteFotos);
+
       await setDoc(doc(db, "barbearias", usuario.uid), {
         nome: nomeLoja,
         slug: slug,
@@ -149,7 +159,7 @@ export default function CriarLoja() {
         formasPagamento: formasPagamento,
         chavePix: chavePix,
         sobre: sobre,
-        galeria: galeria, 
+        galeria: galeriaFinal, 
         comodidades: comodidades, 
         abertura: abertura,
         fechamento: fechamento,
@@ -335,19 +345,22 @@ export default function CriarLoja() {
             </div>
           </div>
 
-          <div className="input-group">
-            <label><Image size={14} /> Galeria de Fotos (3 links)</label>
-            {galeria.map((foto, index) => (
-              <input 
-                key={index}
-                type="url" 
-                value={foto} 
-                onChange={e => atualizarGaleria(index, e.target.value)} 
-                placeholder={`Foto ${index + 1} (https://...)`}
-                style={{ marginBottom: '8px' }}
-              />
-            ))}
-          </div>
+          {/* GALERIA DE FOTOS - SÓ APARECE PARA PRO E PREMIUM */}
+          {limiteFotos > 0 && (
+            <div className="input-group">
+              <label><Image size={14} /> Galeria de Fotos ({limiteFotos} fotos)</label>
+              {galeria.slice(0, limiteFotos).map((foto, index) => (
+                <input 
+                  key={index}
+                  type="url" 
+                  value={foto} 
+                  onChange={e => atualizarGaleria(index, e.target.value)} 
+                  placeholder={`Foto ${index + 1} (https://...)`}
+                  style={{ marginBottom: '8px' }}
+                />
+              ))}
+            </div>
+          )}
 
           <div className="input-group">
             <label>Comodidades</label>

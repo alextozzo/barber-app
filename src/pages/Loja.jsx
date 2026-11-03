@@ -113,9 +113,16 @@ export default function Loja() {
     'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=600',
   ];
 
-  const fotosParaExibir = (loja.galeria && loja.galeria.filter(f => f).length > 0) 
-    ? loja.galeria.filter(f => f) 
-    : galeriaExemplo;
+  // Define o limite de fotos conforme o plano
+  const limiteFotos = loja.plano === 'premium' ? 5 : loja.plano === 'pro' ? 3 : 0;
+
+  // Pega as fotos reais (filtra as vazias) e limita ao máximo do plano
+  const fotosReais = (loja.galeria || []).filter(f => f).slice(0, limiteFotos);
+
+  // Se for Básico, não mostra galeria. Se for Pro/Premium sem fotos, mostra exemplo.
+  const fotosParaExibir = limiteFotos === 0 
+    ? [] 
+    : (fotosReais.length > 0 ? fotosReais : galeriaExemplo.slice(0, limiteFotos));
 
   const comodidadesParaExibir = (loja.comodidades && loja.comodidades.length > 0)
     ? loja.comodidades
@@ -158,14 +165,16 @@ export default function Loja() {
           </button>
         </div>
 
-        {/* GALERIA DE FOTOS */}
-        <div className="loja-galeria">
-          {fotosParaExibir.map((foto, index) => (
-            <img key={index} src={foto} alt={`Foto ${index + 1}`} className="galeria-img" />
-          ))}
-        </div>
+        {/* GALERIA DE FOTOS (SÓ APARECE SE O PLANO PERMITIR) */}
+        {fotosParaExibir.length > 0 && (
+          <div className="loja-galeria">
+            {fotosParaExibir.map((foto, index) => (
+              <img key={index} src={foto} alt={`Foto ${index + 1}`} className="galeria-img" />
+            ))}
+          </div>
+        )}
 
-        {/* NOVO: SEÇÃO SOBRE */}
+        {/* SEÇÃO SOBRE */}
         {loja.sobre && (
           <div className="loja-sobre card">
             <h3>Sobre o Estabelecimento</h3>
@@ -173,7 +182,7 @@ export default function Loja() {
           </div>
         )}
 
-        {/* NOVO: COMO AGENDAR */}
+        {/* COMO AGENDAR */}
         <div className="loja-como-agendar card">
           <h3>Como Agendar</h3>
           <div className="passos-agendar">

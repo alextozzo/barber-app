@@ -122,6 +122,14 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
         criadoEm: new Date()
       });
 
+      // DISPARA A NOTIFICAÇÃO PARA O BARBEIRO (se ele permitiu)
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('🔔 Novo Agendamento!', {
+          body: `${auth.currentUser.displayName} agendou ${selectedService.nome} para ${selectedDate.toLocaleDateString('pt-BR')} às ${selectedTime}.`,
+          icon: barber.photo || '/vite.svg'
+        });
+      }
+
       alert(`✅ Agendamento realizado!\n\nO profissional foi avisado que você já pagou via Pix.`);
       onClose();
     } catch (error) {

@@ -1,12 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Check, Scissors, Crown, Zap } from 'lucide-react';
+import { auth, db } from '../firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import LoginModal from '../components/LoginModal';
 import './Planos.css';
 
 export default function Planos() {
   const navigate = useNavigate();
   const [loginOpen, setLoginOpen] = useState(false);
+  const [user, setUser] = useState(undefined);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const planos = [
     {
@@ -55,18 +66,33 @@ export default function Planos() {
     }
   ];
 
-  function escolherPlano(planoId) {
+  async function escolherPlano(planoId) {
     localStorage.setItem('planoEscolhido', planoId);
-    localStorage.setItem('intencao', 'profissional');
-    
-    // VERIFICA SE JÁ ESTÁ LOGADO
-    const jaLogado = localStorage.getItem('logado') === 'true';
-    
-    if (jaLogado) {
-      navigate('/criar-loja'); // Vai direto
-    } else {
-      setLoginOpen(true); // Abre o modal
+
+    // Se o usuário JÁ ESTÁ LOGADO, atualiza o plano da loja dele
+    if (user) {
+      try {
+        const lojaRef = doc(db, "barbearias", user.uid);
+        const lojaSnap = await getDoc(lojaRef);
+
+        if (lojaSnap.exists()) {
+          await updateDoc(lojaRef, { 
+            plano: planoId,
+            statusPagamento: 'pendente'
+          });
+          alert(`✅ Plano alterado para ${planoId.toUpperCase()}! Efetue o pagamento para liberar.`);
+          navigate('/checkout');
+          return;
+        }
+      } catch (error) {
+        console.error("Erro ao atualizar plano:", error);
+      }
     }
+
+    // Se não está logado, segue o fluxo normal
+    localStorage.setItem('intencao', 'profissional');
+    localStorage.setItem('abrirLogin', 'true');
+    navigate('/');
   }
 
   return (
@@ -110,6 +136,37 @@ export default function Planos() {
           </div>
         ))}
       </div>
+
+      {/* NOVA SEÇÃO: BENEFÍCIOS DO UPGRADE */}
+      <section className="upgrade-beneficios">
+        <div className="section-header">
+          <span className="section-tagline">— Por que fazer Upgrade? —</span>
+          <h2>O que você ganha ao <em>subir de plano</em></h2>
+        </div>
+        
+        <div className="beneficios-grid">
+          <div className="beneficio-card card">
+            <div className="beneficio-icon">📊</div>
+            <h3>Relatórios Financeiros</h3>
+            <p>Saiba exatamente quanto você faturou no mês, qual é o seu ticket médio e quais serviços vendem mais.</p>
+          </div>
+          <div className="beneficio-card card">
+            <div className="beneficio-icon">👥</div>
+            <h3>Gestão de Equipe</h3>
+            <p>Adicione outros profissionais, defina comissões e deixe o cliente escolher com quem quer ser atendido.</p>
+          </div>
+          <div className="beneficio-card card">
+            <div className="beneficio-icon">💳</div>
+            <h3>Cartão Fidelidade</h3>
+            <p>Fidelize seus clientes com pontos e faça eles voltarem sempre. Cliente fiel é cliente que gasta mais.</p>
+          </div>
+          <div className="beneficio-card card">
+            <div className="beneficio-icon">🎨</div>
+            <h3>Personalização da Marca</h3>
+            <p>Mude a cor da sua página para combinar com a identidade visual do seu negócio.</p>
+          </div>
+        </div>
+      </section>
 
       {loginOpen && (
         <LoginModal onClose={() => setLoginOpen(false)} />

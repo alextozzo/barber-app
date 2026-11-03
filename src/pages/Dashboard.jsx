@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDoc, increment } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Calendar, CheckCircle, Award, Clock } from 'lucide-react';
+import { Calendar, CheckCircle, Award, Clock, Bell, X } from 'lucide-react';
 
 export default function Dashboard() {
   const [agendamentos, setAgendamentos] = useState([]);
@@ -10,6 +10,7 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [fidelidadeAtiva, setFidelidadeAtiva] = useState(false);
   const [proximoCliente, setProximoCliente] = useState(null);
+  const [mostrarBannerNotificacao, setMostrarBannerNotificacao] = useState(false);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -17,6 +18,27 @@ export default function Dashboard() {
     });
     return () => unsubscribeAuth();
   }, []);
+
+  // Verifica permissão de notificação
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      setMostrarBannerNotificacao(true);
+    }
+  }, []);
+
+  async function ativarNotificacoes() {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setMostrarBannerNotificacao(false);
+        new Notification('🔔 Notificações Ativadas!', {
+          body: 'Você será avisado quando um cliente agendar.',
+        });
+      } else {
+        setMostrarBannerNotificacao(false);
+      }
+    }
+  }
 
   useEffect(() => {
     async function verificarFidelidade() {
@@ -34,7 +56,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return; 
-    // Puxa os agendamentos e ordena por data de criação (mais recentes primeiro)
     const q = query(collection(db, "agendamentos"), orderBy("criadoEm", "desc"));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -44,7 +65,6 @@ export default function Dashboard() {
       });
       setAgendamentos(lista);
       
-      // Encontra o próximo cliente (primeiro pendente da lista)
       const proximo = lista.find(ag => ag.status !== 'concluido');
       setProximoCliente(proximo);
       
@@ -72,7 +92,6 @@ export default function Dashboard() {
     }
   }
 
-  // Saudação baseada na hora do dia
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
 
@@ -81,6 +100,25 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-wrapper">
+      {/* BANNER DE NOTIFICAÇÃO */}
+      {mostrarBannerNotificacao && (
+        <div className="banner-notificacao card">
+          <div className="banner-notif-content">
+            <Bell size={24} color="var(--primary)" />
+            <div>
+              <h4>Ative as notificações</h4>
+              <p>Seja avisado quando um cliente agendar, mesmo com o app fechado.</p>
+            </div>
+          </div>
+          <div className="banner-notif-actions">
+            <button className="btn-primary" onClick={ativarNotificacoes}>Ativar</button>
+            <button className="btn-close-banner" onClick={() => setMostrarBannerNotificacao(false)}>
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="dashboard-header">
         <div>
           <h1>{saudacao}, {user.displayName ? user.displayName.split(' ')[0] : 'Profissional'}!</h1>
@@ -94,7 +132,6 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* CARD DO PRÓXIMO CLIENTE (Destaque) */}
       {proximoCliente && (
         <div className="proximo-cliente-card">
           <div className="proximo-header">
@@ -115,7 +152,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* LISTA DE AGENDAMENTOS */}
       <div className="agenda-list">
         <h3 style={{ color: 'var(--cream)', marginBottom: '16px', fontSize: '18px' }}>Todos os Agendamentos</h3>
         
@@ -145,10 +181,25 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* ESTILOS INLINE DO DASHBOARD */}
       <style>{`
         .dashboard-wrapper { max-width: 1000px; margin: 0 auto; padding: 40px 24px; }
         
+        .banner-notificacao {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px 24px;
+          margin-bottom: 32px;
+          border-color: var(--primary);
+          background: rgba(59, 130, 246, 0.05);
+        }
+        .banner-notif-content { display: flex; align-items: center; gap: 16px; }
+        .banner-notif-content h4 { font-size: 16px; color: var(--cream); margin-bottom: 4px; }
+        .banner-notif-content p { font-size: 13px; color: var(--muted); }
+        .banner-notif-actions { display: flex; align-items: center; gap: 12px; }
+        .btn-close-banner { background: none; color: var(--muted); padding: 4px; }
+        .btn-close-banner:hover { color: var(--danger); }
+
         .dashboard-header {
           display: flex;
           justify-content: space-between;
@@ -202,6 +253,7 @@ export default function Dashboard() {
         .agenda-item .valor { font-weight: 600; color: var(--cream); margin-right: 20px; }
 
         @media (max-width: 768px) {
+          .banner-notificacao { flex-direction: column; align-items: flex-start; gap: 12px; }
           .dashboard-header { flex-direction: column; align-items: flex-start; gap: 16px; }
           .proximo-body { flex-direction: column; align-items: flex-start; gap: 16px; }
           .agenda-item { flex-direction: column; align-items: flex-start; gap: 12px; }

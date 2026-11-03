@@ -43,19 +43,21 @@
   letter-spacing: 1px;
 }
 
-.input-group input {
+.input-group input,
+.input-group select {
   width: 100%;
   background: rgba(0,0,0,0.2);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 14px;
   color: var(--cream);
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-.input-group input:focus {
+.input-group input:focus,
+.input-group select:focus {
   outline: none;
-  border-color: var(--gold);
+  border-color: var(--primary);
 }
 
 .slug-input-group {
@@ -79,4 +81,27 @@
   border: none;
   border-radius: 0;
   background: transparent;
+}
+
+/* Botões de Forma de Pagamento */
+.btn-forma-pagamento {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 10px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn-forma-pagamento:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-forma-pagamento.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
 }

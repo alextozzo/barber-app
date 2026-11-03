@@ -21,6 +21,7 @@ export default function Navbar({ onLoginClick, onBookClick }) {
 
   async function handleLogout() {
     await signOut(auth);
+    localStorage.removeItem('logado'); // <-- LIMPA A FLAG
     alert('Você saiu da conta.');
     setMenuOpen(false);
   }

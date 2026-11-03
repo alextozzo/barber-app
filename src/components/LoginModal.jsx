@@ -35,10 +35,13 @@ export default function LoginModal({ onClose }) {
         });
       }
       
-      // Verifica a intenção (profissional)
+      // SALVA A FLAG DE LOGADO
+      localStorage.setItem('logado', 'true');
+
+      // Verifica a intenção
       const intencao = localStorage.getItem('intencao');
       
-      if (intencao === 'profissional') { // <-- CORRIGIDO AQUI
+      if (intencao === 'profissional') {
         localStorage.removeItem('intencao');
         onClose(); 
         setTimeout(() => navigate('/criar-loja'), 500);

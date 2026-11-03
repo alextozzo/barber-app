@@ -3,7 +3,7 @@ import { db, auth } from '../firebase';
 import { doc, setDoc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { Store, Link as LinkIcon, Camera, Clock, Utensils } from 'lucide-react';
+import { Store, Link as LinkIcon, Camera, Clock, Utensils, MapPin, AtSign, Phone, DollarSign } from 'lucide-react';
 import './CriarLoja.css';
 
 export default function CriarLoja() {
@@ -12,6 +12,11 @@ export default function CriarLoja() {
   const [fotoUrl, setFotoUrl] = useState('');
   const [nicho, setNicho] = useState('barbearia');
   
+  const [endereco, setEndereco] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [formasPagamento, setFormasPagamento] = useState([]);
+
   const [abertura, setAbertura] = useState('09:00');
   const [fechamento, setFechamento] = useState('19:00');
   const [almocoInicio, setAlmocoInicio] = useState('12:00');
@@ -34,15 +39,11 @@ export default function CriarLoja() {
 
   useEffect(() => {
     async function fetchLoja() {
-      // Se o usuário ainda não foi carregado, não faz nada
       if (usuario === undefined) return;
-      
-      // Se o usuário não está logado, para o carregamento e mostra o bloqueio
       if (usuario === null) {
         setCarregando(false);
         return; 
       }
-
       try {
         const docRef = doc(db, "barbearias", usuario.uid);
         const docSnap = await getDoc(docRef);
@@ -52,6 +53,10 @@ export default function CriarLoja() {
           setSlug(data.slug || '');
           setFotoUrl(data.fotoUrl || '');
           setNicho(data.nicho || 'barbearia');
+          setEndereco(data.endereco || '');
+          setInstagram(data.instagram || '');
+          setWhatsapp(data.whatsapp || '');
+          setFormasPagamento(data.formasPagamento || []);
           setAbertura(data.abertura || '09:00');
           setFechamento(data.fechamento || '19:00');
           setAlmocoInicio(data.almocoInicio || '12:00');
@@ -77,6 +82,14 @@ export default function CriarLoja() {
     setSlug(slugFormatado);
   }
 
+  function togglePagamento(forma) {
+    if (formasPagamento.includes(forma)) {
+      setFormasPagamento(formasPagamento.filter(f => f !== forma));
+    } else {
+      setFormasPagamento([...formasPagamento, forma]);
+    }
+  }
+
   async function salvarLoja(e) {
     e.preventDefault();
     if (!nomeLoja || !slug || !usuario) return;
@@ -88,19 +101,22 @@ export default function CriarLoja() {
         slug: slug,
         fotoUrl: fotoUrl,
         nicho: nicho,
+        endereco: endereco,
+        instagram: instagram,
+        whatsapp: whatsapp,
+        formasPagamento: formasPagamento,
         abertura: abertura,
         fechamento: fechamento,
         almocoInicio: almocoInicio,
         almocoFim: almocoFim,
         corPrincipal: corPrincipal,
         plano: planoEscolhido,
-        statusPagamento: 'pendente', // <-- Já cria como pendente
+        statusPagamento: 'pendente',
         donoId: usuario.uid,
         donoEmail: usuario.email,
         criadoEm: new Date()
       });
 
-      // Cria os serviços padrão baseados no nicho
       const servicosPadrao = {
         barbearia: [
           { nome: 'Corte Clássico', duracao: 30, preco: 60 },
@@ -144,12 +160,10 @@ export default function CriarLoja() {
     }
   }
 
-  // Se o usuário ainda não foi carregado (undefined), mostra o carregando
   if (usuario === undefined) {
     return <p style={{ textAlign: 'center', marginTop: '50px', color: 'var(--muted)' }}>Verificando login...</p>;
   }
 
-  // Se o usuário for null (não logado), mostra o bloqueio
   if (usuario === null) {
     return (
       <div style={{ textAlign: 'center', marginTop: '100px' }}>
@@ -168,14 +182,13 @@ export default function CriarLoja() {
     );
   }
 
-  // Se estiver logado, mostra o carregamento dos dados da loja (se houver)
   if (carregando) {
     return <p style={{ textAlign: 'center', marginTop: '50px', color: 'var(--muted)' }}>Carregando dados da loja...</p>;
   }
 
   return (
     <div className="criar-loja-container">
-      <div className="criar-loja-card card" style={{ maxWidth: '600px' }}>
+      <div className="criar-loja-card card" style={{ maxWidth: '700px' }}>
         <div className="header-logo">
           <Store size={32} color={corPrincipal} />
           <h2>Meu Negócio</h2>
@@ -185,7 +198,7 @@ export default function CriarLoja() {
         <form onSubmit={salvarLoja}>
           <div className="input-group">
             <label>Nome do Estabelecimento</label>
-            <input type="text" value={nomeLoja} onChange={e => { setNomeLoja(e.target.value); gerarSlug(e.target.value); }} placeholder="Ex: Agendaê Studio" required />
+            <input type="text" value={nomeLoja} onChange={e => { setNomeLoja(e.target.value); gerarSlug(e.target.value); }} placeholder="Ex: Quero1Horario Studio" required />
           </div>
 
           <div className="input-group">
@@ -193,7 +206,7 @@ export default function CriarLoja() {
             <select 
               value={nicho} 
               onChange={e => setNicho(e.target.value)}
-              style={{ width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '6px', padding: '14px', color: 'var(--cream)', fontFamily: 'Poppins, sans-serif' }}
+              style={{ width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '6px', padding: '14px', color: 'var(--cream)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
             >
               <option value="barbearia">Barbearia</option>
               <option value="manicure">Manicure / Salão</option>
@@ -204,9 +217,41 @@ export default function CriarLoja() {
           </div>
 
           <div className="input-group">
+            <label><MapPin size={14} /> Endereço</label>
+            <input type="text" value={endereco} onChange={e => setEndereco(e.target.value)} placeholder="Rua, número, bairro, cidade" />
+          </div>
+
+          <div className="input-row" style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
+            <div className="input-group" style={{ flex: 1 }}>
+              <label><AtSign size={14} /> Instagram (@)</label>
+              <input type="text" value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="@sualoja" />
+            </div>
+            <div className="input-group" style={{ flex: 1 }}>
+              <label><Phone size={14} /> WhatsApp</label>
+              <input type="tel" value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="(11) 99999-9999" />
+            </div>
+          </div>
+
+          <div className="input-group">
+            <label><DollarSign size={14} /> Formas de Pagamento</label>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {['Dinheiro', 'Cartão de Crédito', 'Cartão de Débito', 'Pix'].map(forma => (
+                <button
+                  key={forma}
+                  type="button"
+                  onClick={() => togglePagamento(forma)}
+                  className={`btn-forma-pagamento ${formasPagamento.includes(forma) ? 'active' : ''}`}
+                >
+                  {forma}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="input-group">
             <label><LinkIcon size={14} /> Seu Link Exclusivo</label>
             <div className="slug-input-group">
-              <span className="slug-prefix">agendae.com.br/</span>
+              <span className="slug-prefix">quero1horario.com.br/</span>
               <input type="text" value={slug} onChange={e => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))} required />
             </div>
           </div>

@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Check, Scissors, Crown, Zap } from 'lucide-react';
+import LoginModal from '../components/LoginModal';
 import './Planos.css';
 
 export default function Planos() {
   const navigate = useNavigate();
+  const [loginOpen, setLoginOpen] = useState(false);
 
   const planos = [
     {
@@ -54,9 +57,16 @@ export default function Planos() {
 
   function escolherPlano(planoId) {
     localStorage.setItem('planoEscolhido', planoId);
-    localStorage.setItem('intencao', 'profissional'); // <-- ESSA LINHA FALTAVA
-    localStorage.setItem('abrirLogin', 'true');
-    navigate('/');
+    localStorage.setItem('intencao', 'profissional');
+    
+    // VERIFICA SE JÁ ESTÁ LOGADO
+    const jaLogado = localStorage.getItem('logado') === 'true';
+    
+    if (jaLogado) {
+      navigate('/criar-loja'); // Vai direto
+    } else {
+      setLoginOpen(true); // Abre o modal
+    }
   }
 
   return (
@@ -100,6 +110,10 @@ export default function Planos() {
           </div>
         ))}
       </div>
+
+      {loginOpen && (
+        <LoginModal onClose={() => setLoginOpen(false)} />
+      )}
     </div>
   );
 }

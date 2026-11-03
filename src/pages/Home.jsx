@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom'; // <-- useNavigate adicionado
 import { Scissors, Smartphone, Share2, CalendarCheck, Sparkles, Store, Link as LinkIcon, Users, Award, ArrowRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
@@ -8,6 +8,7 @@ import LoginModal from '../components/LoginModal';
 export default function Home() {
   const [loginOpen, setLoginOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate(); // <-- navigate declarado
 
   useEffect(() => {
     const abrirLogin = localStorage.getItem('abrirLogin');
@@ -15,7 +16,7 @@ export default function Home() {
       setLoginOpen(true);
       localStorage.removeItem('abrirLogin'); 
     }
-  }, [location]); // <-- CORRIGIDO: Adicionado location
+  }, [location]);
 
   return (
     <>
@@ -24,12 +25,13 @@ export default function Home() {
         onBookClick={() => setLoginOpen(true)} 
       />
       
-      <Hero onBookClick={() => setLoginOpen(true)} />
+      {/* Botão do Hero agora leva para Planos */}
+      <Hero onBookClick={() => navigate('/planos')} />
 
       <section className="section-features">
         <div className="section-header">
           <span className="section-tagline">— Tudo em um só lugar —</span>
-          <h2>O que o <em>Agendaê</em> faz por você?</h2>
+          <h2>O que o <em>Quero1Horario</em> faz por você?</h2>
         </div>
         
         <div className="features-grid">
@@ -89,19 +91,19 @@ export default function Home() {
         
         <div className="nichos-grid">
           <div className="nicho-item">
-            <Scissors size={32} color="var(--gold)" />
+            <Scissors size={32} color="var(--primary)" />
             <h4>Barbearias</h4>
           </div>
           <div className="nicho-item">
-            <Sparkles size={32} color="var(--gold)" />
+            <Sparkles size={32} color="var(--primary)" />
             <h4>Manicures</h4>
           </div>
           <div className="nicho-item">
-            <Smartphone size={32} color="var(--gold)" />
+            <Smartphone size={32} color="var(--primary)" />
             <h4>Tatuadores</h4>
           </div>
           <div className="nicho-item">
-            <Sparkles size={32} color="var(--gold)" />
+            <Sparkles size={32} color="var(--primary)" />
             <h4>Estética</h4>
           </div>
         </div>
@@ -110,7 +112,7 @@ export default function Home() {
       <section className="section-cta">
         <div className="cta-card card">
           <h2>Pronto para lotar sua agenda?</h2>
-          <p>Junte-se aos profissionais que já estão usando o Agendaê para crescer.</p>
+          <p>Junte-se aos profissionais que já estão usando o Quero1Horario para crescer.</p>
           <Link to="/planos" className="btn-primary cta-btn">
             Começar Agora <ArrowRight size={18} />
           </Link>
@@ -133,7 +135,7 @@ export default function Home() {
           margin-bottom: 60px;
         }
         .section-tagline {
-          color: var(--gold);
+          color: var(--primary);
           font-size: 13px;
           letter-spacing: 4px;
           text-transform: uppercase;
@@ -144,7 +146,7 @@ export default function Home() {
           color: var(--cream);
         }
         .section-header h2 em {
-          color: var(--gold);
+          color: var(--primary);
           font-style: italic;
         }
 
@@ -160,12 +162,12 @@ export default function Home() {
         .feature-icon {
           width: 56px;
           height: 56px;
-          background: rgba(201, 169, 97, 0.1);
+          background: rgba(59, 130, 246, 0.1);
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--gold);
+          color: var(--primary);
           margin: 0 auto 20px;
         }
         .feature-card h3 { font-size: 18px; color: var(--cream); margin-bottom: 12px; }
@@ -183,13 +185,13 @@ export default function Home() {
         .passo-numero {
           width: 48px;
           height: 48px;
-          background: var(--gold);
-          color: var(--bg-primary);
+          background: var(--primary);
+          color: white;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-family: 'Playfair Display', serif;
+          font-family: 'Plus Jakarta Sans', sans-serif;
           font-size: 24px;
           font-weight: bold;
           margin: 0 auto 20px;
@@ -211,7 +213,7 @@ export default function Home() {
           transition: all 0.3s;
         }
         .nicho-item:hover {
-          border-color: var(--gold);
+          border-color: var(--primary);
           transform: translateY(-5px);
         }
         .nicho-item h4 {
@@ -223,8 +225,8 @@ export default function Home() {
         .cta-card {
           text-align: center;
           padding: 60px 40px;
-          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(201, 169, 97, 0.05) 100%);
-          border-color: var(--gold);
+          background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.05) 100%);
+          border-color: var(--primary);
         }
         .cta-card h2 { font-size: 40px; color: var(--cream); margin-bottom: 16px; }
         .cta-card p { color: var(--muted); margin-bottom: 32px; font-size: 16px; }

@@ -3,7 +3,7 @@ import { db, auth } from '../firebase';
 import { doc, setDoc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { Store, Link as LinkIcon, Camera, Clock, Utensils, MapPin, AtSign, Phone, DollarSign } from 'lucide-react';
+import { Store, Link as LinkIcon, Camera, Clock, Utensils, MapPin, AtSign, Phone, DollarSign, Image } from 'lucide-react';
 import './CriarLoja.css';
 
 export default function CriarLoja() {
@@ -16,7 +16,11 @@ export default function CriarLoja() {
   const [instagram, setInstagram] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [formasPagamento, setFormasPagamento] = useState([]);
-  const [chavePix, setChavePix] = useState(''); // <-- NOVO ESTADO PIX
+  const [chavePix, setChavePix] = useState('');
+  const [sobre, setSobre] = useState('');
+
+  const [galeria, setGaleria] = useState(['', '', '']); 
+  const [comodidades, setComodidades] = useState([]);
 
   const [abertura, setAbertura] = useState('09:00');
   const [fechamento, setFechamento] = useState('19:00');
@@ -58,7 +62,10 @@ export default function CriarLoja() {
           setInstagram(data.instagram || '');
           setWhatsapp(data.whatsapp || '');
           setFormasPagamento(data.formasPagamento || []);
-          setChavePix(data.chavePix || ''); // <-- PUXA A CHAVE PIX
+          setChavePix(data.chavePix || '');
+          setSobre(data.sobre || '');
+          setGaleria(data.galeria || ['', '', '']); 
+          setComodidades(data.comodidades || []); 
           setAbertura(data.abertura || '09:00');
           setFechamento(data.fechamento || '19:00');
           setAlmocoInicio(data.almocoInicio || '12:00');
@@ -84,6 +91,19 @@ export default function CriarLoja() {
     setSlug(slugFormatado);
   }
 
+  // MÁSCARA DE WHATSAPP
+  function handleWhatsApp(e) {
+    let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
+    if (value.length > 11) value = value.slice(0, 11); // Limita a 11 dígitos
+    
+    if (value.length <= 10) {
+      value = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+    } else {
+      value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    }
+    setWhatsapp(value);
+  }
+
   function togglePagamento(forma) {
     if (formasPagamento.includes(forma)) {
       setFormasPagamento(formasPagamento.filter(f => f !== forma));
@@ -92,9 +112,29 @@ export default function CriarLoja() {
     }
   }
 
+  function toggleComodidade(comodidade) {
+    if (comodidades.includes(comodidade)) {
+      setComodidades(comodidades.filter(c => c !== comodidade));
+    } else {
+      setComodidades([...comodidades, comodidade]);
+    }
+  }
+
+  function atualizarGaleria(index, url) {
+    const novaGaleria = [...galeria];
+    novaGaleria[index] = url;
+    setGaleria(novaGaleria);
+  }
+
   async function salvarLoja(e) {
     e.preventDefault();
     if (!nomeLoja || !slug || !usuario) return;
+
+    // VALIDAÇÃO DE WHATSAPP
+    if (whatsapp && whatsapp.replace(/\D/g, '').length < 10) {
+      alert('WhatsApp inválido. Digite DDD + número.');
+      return;
+    }
 
     setSalvando(true);
     try {
@@ -107,7 +147,10 @@ export default function CriarLoja() {
         instagram: instagram,
         whatsapp: whatsapp,
         formasPagamento: formasPagamento,
-        chavePix: chavePix, // <-- SALVA A CHAVE PIX
+        chavePix: chavePix,
+        sobre: sobre,
+        galeria: galeria, 
+        comodidades: comodidades, 
         abertura: abertura,
         fechamento: fechamento,
         almocoInicio: almocoInicio,
@@ -224,6 +267,17 @@ export default function CriarLoja() {
             <input type="text" value={endereco} onChange={e => setEndereco(e.target.value)} placeholder="Rua, número, bairro, cidade" />
           </div>
 
+          <div className="input-group">
+            <label>Sobre a Loja (Apresentação)</label>
+            <textarea 
+              value={sobre} 
+              onChange={e => setSobre(e.target.value)} 
+              placeholder="Conte um pouco sobre sua história, seus diferenciais e o que os clientes podem esperar..." 
+              rows="4"
+              style={{ width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '6px', padding: '14px', color: 'var(--cream)', fontFamily: 'Plus Jakarta Sans, sans-serif', resize: 'vertical' }}
+            />
+          </div>
+
           <div className="input-row" style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
             <div className="input-group" style={{ flex: 1 }}>
               <label><AtSign size={14} /> Instagram (@)</label>
@@ -231,31 +285,20 @@ export default function CriarLoja() {
             </div>
             <div className="input-group" style={{ flex: 1 }}>
               <label><Phone size={14} /> WhatsApp</label>
-              <input type="tel" value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="(11) 99999-9999" />
+              <input type="tel" value={whatsapp} onChange={handleWhatsApp} placeholder="(11) 99999-9999" />
             </div>
           </div>
 
-          {/* NOVO CAMPO: CHAVE PIX */}
           <div className="input-group">
             <label><DollarSign size={14} /> Chave Pix (para receber dos clientes)</label>
-            <input 
-              type="text" 
-              value={chavePix} 
-              onChange={e => setChavePix(e.target.value)} 
-              placeholder="CPF, e-mail, telefone ou chave aleatória" 
-            />
+            <input type="text" value={chavePix} onChange={e => setChavePix(e.target.value)} placeholder="CPF, e-mail, telefone ou chave aleatória" />
           </div>
 
           <div className="input-group">
             <label><DollarSign size={14} /> Formas de Pagamento</label>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               {['Dinheiro', 'Cartão de Crédito', 'Cartão de Débito', 'Pix'].map(forma => (
-                <button
-                  key={forma}
-                  type="button"
-                  onClick={() => togglePagamento(forma)}
-                  className={`btn-forma-pagamento ${formasPagamento.includes(forma) ? 'active' : ''}`}
-                >
+                <button key={forma} type="button" onClick={() => togglePagamento(forma)} className={`btn-forma-pagamento ${formasPagamento.includes(forma) ? 'active' : ''}`}>
                   {forma}
                 </button>
               ))}
@@ -289,6 +332,31 @@ export default function CriarLoja() {
             <div className="input-group" style={{ flex: 1 }}>
               <label><Utensils size={14} /> Fim do Almoço</label>
               <input type="time" value={almocoFim} onChange={e => setAlmocoFim(e.target.value)} required />
+            </div>
+          </div>
+
+          <div className="input-group">
+            <label><Image size={14} /> Galeria de Fotos (3 links)</label>
+            {galeria.map((foto, index) => (
+              <input 
+                key={index}
+                type="url" 
+                value={foto} 
+                onChange={e => atualizarGaleria(index, e.target.value)} 
+                placeholder={`Foto ${index + 1} (https://...)`}
+                style={{ marginBottom: '8px' }}
+              />
+            ))}
+          </div>
+
+          <div className="input-group">
+            <label>Comodidades</label>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {['Wi-Fi', 'Estacionamento', 'Acessibilidade', 'Atende Crianças'].map(item => (
+                <button key={item} type="button" onClick={() => toggleComodidade(item)} className={`btn-forma-pagamento ${comodidades.includes(item) ? 'active' : ''}`}>
+                  {item}
+                </button>
+              ))}
             </div>
           </div>
 

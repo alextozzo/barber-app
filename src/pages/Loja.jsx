@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { db, auth } from '../firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Store, Star, MapPin, Phone, AtSign, Clock, CreditCard, DollarSign } from 'lucide-react';
+import { Store, Star, MapPin, Phone, AtSign, Clock, CreditCard, DollarSign, Wifi, Car, Accessibility, Baby, Scissors, CheckCircle } from 'lucide-react';
 import BookingModal from '../components/BookingModal';
 import LoginModal from '../components/LoginModal';
 import './Loja.css';
@@ -16,6 +16,7 @@ export default function Loja() {
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [user, setUser] = useState(undefined);
+  const [abaAtiva, setAbaAtiva] = useState('servicos');
   const [mediaAvaliacao, setMediaAvaliacao] = useState(5.0);
   const [totalAvaliacoes, setTotalAvaliacoes] = useState(0);
 
@@ -55,14 +56,12 @@ export default function Loja() {
     buscarLoja();
   }, [slug]);
 
-  // CORREÇÃO DA COR: Aplica azul padrão ou cor personalizada
   useEffect(() => {
     const corFinal = loja?.corPrincipal || '#3B82F6'; 
     document.documentElement.style.setProperty('--primary', corFinal);
     document.documentElement.style.setProperty('--gold', corFinal);
   }, [loja]);
 
-  // CALCULA A MÉDIA DE AVALIAÇÕES
   useEffect(() => {
     async function calcularMedia() {
       if (!loja) return;
@@ -108,6 +107,20 @@ export default function Loja() {
     almocoFim: loja.almocoFim || '13:00'
   };
 
+  const galeriaExemplo = [
+    'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=600',
+    'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600',
+    'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=600',
+  ];
+
+  const fotosParaExibir = (loja.galeria && loja.galeria.filter(f => f).length > 0) 
+    ? loja.galeria.filter(f => f) 
+    : galeriaExemplo;
+
+  const comodidadesParaExibir = (loja.comodidades && loja.comodidades.length > 0)
+    ? loja.comodidades
+    : ['Wi-Fi', 'Estacionamento', 'Acessibilidade'];
+
   return (
     <>
       <nav className="navbar-loja">
@@ -145,6 +158,100 @@ export default function Loja() {
           </button>
         </div>
 
+        {/* GALERIA DE FOTOS */}
+        <div className="loja-galeria">
+          {fotosParaExibir.map((foto, index) => (
+            <img key={index} src={foto} alt={`Foto ${index + 1}`} className="galeria-img" />
+          ))}
+        </div>
+
+        {/* NOVO: SEÇÃO SOBRE */}
+        {loja.sobre && (
+          <div className="loja-sobre card">
+            <h3>Sobre o Estabelecimento</h3>
+            <p>{loja.sobre}</p>
+          </div>
+        )}
+
+        {/* NOVO: COMO AGENDAR */}
+        <div className="loja-como-agendar card">
+          <h3>Como Agendar</h3>
+          <div className="passos-agendar">
+            <div className="passo-item">
+              <div className="passo-numero">1</div>
+              <div>
+                <h4>Escolha o Serviço</h4>
+                <p>Clique em "Agendar Horário" e selecione o serviço desejado.</p>
+              </div>
+            </div>
+            <div className="passo-item">
+              <div className="passo-numero">2</div>
+              <div>
+                <h4>Escolha Data e Hora</h4>
+                <p>Selecione o melhor dia e horário para você.</p>
+              </div>
+            </div>
+            <div className="passo-item">
+              <div className="passo-numero">3</div>
+              <div>
+                <h4>Pague e Confirme</h4>
+                <p>Faça o Pix para a chave do profissional e clique em "Já Paguei".</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* COMODIDADES */}
+        <div className="loja-comodidades card">
+          <h3>Comodidades</h3>
+          <div className="comodidades-grid">
+            {comodidadesParaExibir.map((item, index) => (
+              <div key={index} className="comodidade-item">
+                {item === 'Wi-Fi' && <Wifi size={20} />}
+                {item === 'Estacionamento' && <Car size={20} />}
+                {item === 'Acessibilidade' && <Accessibility size={20} />}
+                {item === 'Atende Crianças' && <Baby size={20} />}
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ABAS */}
+        <div className="loja-abas">
+          <button className={`aba-btn ${abaAtiva === 'servicos' ? 'active' : ''}`} onClick={() => setAbaAtiva('servicos')}>
+            Serviços
+          </button>
+          <button className={`aba-btn ${abaAtiva === 'profissionais' ? 'active' : ''}`} onClick={() => setAbaAtiva('profissionais')}>
+            Profissionais
+          </button>
+          <button className={`aba-btn ${abaAtiva === 'avaliacoes' ? 'active' : ''}`} onClick={() => setAbaAtiva('avaliacoes')}>
+            Avaliações
+          </button>
+        </div>
+
+        <div className="loja-conteudo">
+          {abaAtiva === 'servicos' && (
+            <div className="servicos-lista">
+              <h3>Serviços Disponíveis</h3>
+              <p style={{ color: 'var(--muted)', marginBottom: '20px' }}>Clique em "Agendar Horário" para escolher o serviço e ver os horários.</p>
+            </div>
+          )}
+          {abaAtiva === 'profissionais' && (
+            <div className="profissionais-lista">
+              <h3>Nossa Equipe</h3>
+              <p style={{ color: 'var(--muted)' }}>Em breve, a lista de profissionais aparecerá aqui.</p>
+            </div>
+          )}
+          {abaAtiva === 'avaliacoes' && (
+            <div className="avaliacoes-lista">
+              <h3>Avaliações dos Clientes</h3>
+              <p style={{ color: 'var(--muted)' }}>As avaliações aparecerão aqui após os atendimentos.</p>
+            </div>
+          )}
+        </div>
+
+        {/* INFORMAÇÕES (Endereço, Pix, etc) */}
         <div className="loja-info-grid">
           {loja.endereco && (
             <div className="info-card card">
@@ -222,11 +329,6 @@ export default function Loja() {
               )}
             </div>
           </div>
-        </div>
-
-        <div className="loja-servicos">
-          <h2>Serviços Disponíveis</h2>
-          <p style={{ color: 'var(--muted)' }}>Clique em agendar para escolher o serviço, data e horário.</p>
         </div>
 
         <div className="banner-marketing card">

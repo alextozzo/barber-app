@@ -8,7 +8,7 @@
 }
 
 .criar-loja-card {
-  max-width: 500px;
+  max-width: 700px; /* <-- Aumentado para caber galeria e comodidades */
   width: 100%;
   padding: 40px;
 }
@@ -83,7 +83,7 @@
   background: transparent;
 }
 
-/* Botões de Forma de Pagamento */
+/* Botões de Forma de Pagamento e Comodidades */
 .btn-forma-pagamento {
   background: transparent;
   border: 1px solid var(--border);

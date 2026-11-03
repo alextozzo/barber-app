@@ -16,10 +16,46 @@ export default function LoginModal({ onClose }) {
   const [carregando, setCarregando] = useState(false);
   const navigate = useNavigate();
 
+  // MÁSCARA DE TELEFONE
+  function handleTelefone(e) {
+    let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
+    
+    if (value.length <= 10) {
+      // Formato fixo: (11) 1234-5678
+      value = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+    } else {
+      // Formato celular: (11) 91234-5678
+      value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    }
+    
+    setTelefone(value);
+  }
+
+  // VALIDAÇÃO DE TELEFONE
+  function validarTelefone(tel) {
+    const numeros = tel.replace(/\D/g, '');
+    // Aceita 10 dígitos (fixo) ou 11 dígitos (celular)
+    return numeros.length >= 10 && numeros.length <= 11;
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setErro('');
     setCarregando(true);
+
+    // VALIDAÇÃO DE TELEFONE (só no cadastro)
+    if (mode === 'register' && !validarTelefone(telefone)) {
+      setErro('Telefone inválido. Digite DDD + número (ex: 11999999999).');
+      setCarregando(false);
+      return;
+    }
+
+    // VALIDAÇÃO DE SENHA
+    if (password.length < 6) {
+      setErro('A senha deve ter pelo menos 6 caracteres.');
+      setCarregando(false);
+      return;
+    }
 
     try {
       let userCredential;
@@ -45,7 +81,6 @@ export default function LoginModal({ onClose }) {
         localStorage.removeItem('intencao');
         onClose(); 
         
-        // Verifica a loja
         const lojaRef = doc(db, "barbearias", userCredential.user.uid);
         const lojaSnap = await getDoc(lojaRef);
 
@@ -53,12 +88,12 @@ export default function LoginModal({ onClose }) {
           if (lojaSnap.exists()) {
             const dadosLoja = lojaSnap.data();
             if (dadosLoja.statusPagamento === 'ativo') {
-              navigate('/painel'); // Já pagou, vai pro painel
+              navigate('/painel');
             } else {
-              navigate('/checkout'); // Não pagou, vai pro checkout
+              navigate('/checkout');
             }
           } else {
-            navigate('/criar-loja'); // Não tem loja, vai criar
+            navigate('/criar-loja');
           }
         }, 500);
 
@@ -101,7 +136,7 @@ export default function LoginModal({ onClose }) {
                 <input 
                   type="tel" 
                   value={telefone} 
-                  onChange={e => setTelefone(e.target.value)} 
+                  onChange={handleTelefone} 
                   placeholder="(11) 99999-9999" 
                   required 
                 />

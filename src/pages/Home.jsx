@@ -4,9 +4,11 @@ import { Sparkles, Smartphone, CalendarCheck, Users, Award, ArrowRight, Link as 
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import LoginModal from '../components/LoginModal';
+import BookingModal from '../components/BookingModal';
 
 export default function Home() {
   const [loginOpen, setLoginOpen] = useState(false);
+  const [selectedBarber, setSelectedBarber] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -22,7 +24,7 @@ export default function Home() {
     <>
       <Navbar 
         onLoginClick={() => setLoginOpen(true)} 
-        onBookClick={() => setLoginOpen(true)} 
+        onBookClick={() => setSelectedBarber({ id: '1', name: 'Profissional' })} 
       />
       
       <Hero onBookClick={() => navigate('/planos')} />
@@ -54,7 +56,6 @@ export default function Home() {
             <h3>Cartão Fidelidade</h3>
             <p>Fidelize seus clientes com pontos e faça eles voltarem sempre.</p>
           </div>
-          {/* NOVO CARD: RELATÓRIOS FINANCEIROS */}
           <div className="feature-card card">
             <div className="feature-icon"><TrendingUp size={24} /></div>
             <h3>Relatórios Financeiros</h3>
@@ -123,6 +124,17 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      {selectedBarber && (
+        <BookingModal 
+          barber={selectedBarber} 
+          onClose={() => setSelectedBarber(null)} 
+          onAskLogin={() => { 
+            setSelectedBarber(null); // Fecha o agendamento
+            setLoginOpen(true);      // Abre o login
+          }} 
+        />
+      )}
 
       {loginOpen && (
         <LoginModal onClose={() => setLoginOpen(false)} />

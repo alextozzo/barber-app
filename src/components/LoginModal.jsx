@@ -10,31 +10,28 @@ export default function LoginModal({ onClose }) {
   const [mode, setMode] = useState('login');
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [dataNascimento, setDataNascimento] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
   const navigate = useNavigate();
 
-  // MÁSCARA DE TELEFONE
   function handleTelefone(e) {
-    let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é número
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 11) value = value.slice(0, 11);
     
     if (value.length <= 10) {
-      // Formato fixo: (11) 1234-5678
       value = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
     } else {
-      // Formato celular: (11) 91234-5678
       value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
     }
     
     setTelefone(value);
   }
 
-  // VALIDAÇÃO DE TELEFONE
   function validarTelefone(tel) {
     const numeros = tel.replace(/\D/g, '');
-    // Aceita 10 dígitos (fixo) ou 11 dígitos (celular)
     return numeros.length >= 10 && numeros.length <= 11;
   }
 
@@ -43,14 +40,12 @@ export default function LoginModal({ onClose }) {
     setErro('');
     setCarregando(true);
 
-    // VALIDAÇÃO DE TELEFONE (só no cadastro)
     if (mode === 'register' && !validarTelefone(telefone)) {
       setErro('Telefone inválido. Digite DDD + número (ex: 11999999999).');
       setCarregando(false);
       return;
     }
 
-    // VALIDAÇÃO DE SENHA
     if (password.length < 6) {
       setErro('A senha deve ter pelo menos 6 caracteres.');
       setCarregando(false);
@@ -68,6 +63,7 @@ export default function LoginModal({ onClose }) {
         await setDoc(doc(db, "clientes", userCredential.user.uid), {
           nome: nome,
           telefone: telefone,
+          dataNascimento: dataNascimento,
           email: email,
           criadoEm: new Date()
         });
@@ -75,30 +71,36 @@ export default function LoginModal({ onClose }) {
       
       localStorage.setItem('logado', 'true');
 
+      // --- LÓGICA DE REDIRECIONAMENTO CORRIGIDA ---
+      const lojaRef = doc(db, "barbearias", userCredential.user.uid);
+      const lojaSnap = await getDoc(lojaRef);
       const intencao = localStorage.getItem('intencao');
-      
-      if (intencao === 'profissional') {
-        localStorage.removeItem('intencao');
-        onClose(); 
-        
-        const lojaRef = doc(db, "barbearias", userCredential.user.uid);
-        const lojaSnap = await getDoc(lojaRef);
 
+      if (lojaSnap.exists()) {
+        // Usuário já tem loja. Vai para painel ou checkout.
+        const dadosLoja = lojaSnap.data();
+        localStorage.removeItem('intencao');
+        onClose();
+        
         setTimeout(() => {
-          if (lojaSnap.exists()) {
-            const dadosLoja = lojaSnap.data();
-            if (dadosLoja.statusPagamento === 'ativo') {
-              navigate('/painel');
-            } else {
-              navigate('/checkout');
-            }
+          if (dadosLoja.statusPagamento === 'ativo') {
+            navigate('/painel');
           } else {
-            navigate('/criar-loja');
+            navigate('/checkout');
           }
         }, 500);
 
+      } else if (intencao === 'profissional') {
+        // Usuário é profissional mas não tem loja ainda.
+        localStorage.removeItem('intencao');
+        onClose();
+        setTimeout(() => {
+          navigate('/criar-loja');
+        }, 500);
+
       } else {
-        onClose(); 
+        // Usuário é cliente. Apenas fecha o modal.
+        onClose();
       }
 
     } catch (error) {
@@ -138,6 +140,16 @@ export default function LoginModal({ onClose }) {
                   value={telefone} 
                   onChange={handleTelefone} 
                   placeholder="(11) 99999-9999" 
+                  maxLength="15"
+                  required 
+                />
+              </div>
+              <div className="field">
+                <label>Data de Nascimento</label>
+                <input 
+                  type="date" 
+                  value={dataNascimento} 
+                  onChange={e => setDataNascimento(e.target.value)} 
                   required 
                 />
               </div>

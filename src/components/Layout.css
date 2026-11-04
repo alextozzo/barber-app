@@ -3,6 +3,7 @@
   min-height: 100vh;
   background: var(--bg-primary);
 }
+
 .sidebar {
   width: 250px;
   background: var(--bg-secondary);
@@ -11,13 +12,16 @@
   display: flex;
   flex-direction: column;
 }
+
 .sidebar-logo {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 20px;
-  color: var(--gold);
+  font-weight: 800;
+  color: var(--primary);
   margin-bottom: 40px;
   text-align: center;
 }
+
 .sidebar nav a {
   display: flex;
   align-items: center;
@@ -29,10 +33,13 @@
   margin-bottom: 8px;
   transition: all 0.2s;
 }
-.sidebar nav a:hover, .sidebar nav a.active {
-  background: rgba(201, 169, 97, 0.1);
-  color: var(--gold);
+
+.sidebar nav a:hover, 
+.sidebar nav a.active {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--primary);
 }
+
 .logout-btn {
   margin-top: auto;
   display: flex;
@@ -40,8 +47,51 @@
   justify-content: center;
   gap: 8px;
 }
+
 .dashboard-content {
   flex: 1;
   padding: 40px;
   overflow-y: auto;
+}
+
+/* REGRAS PARA CELULAR */
+@media (max-width: 768px) {
+  .dashboard-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    padding: 16px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-logo {
+    margin-bottom: 16px;
+  }
+
+  .sidebar nav {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+
+  .sidebar nav a {
+    white-space: nowrap;
+    margin-bottom: 0;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .logout-btn {
+    margin-top: 0;
+    width: 100%;
+  }
+
+  .dashboard-content {
+    padding: 20px 16px;
+  }
 }

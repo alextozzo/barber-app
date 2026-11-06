@@ -11,9 +11,6 @@ export default function Planos() {
   const navigate = useNavigate();
   const [loginOpen, setLoginOpen] = useState(false);
   const [user, setUser] = useState(undefined);
-  const [jaTemLoja, setJaTemLoja] = useState(false);
-  const [verificando, setVerificando] = useState(true);
-  const [intencao, setIntencao] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -22,29 +19,7 @@ export default function Planos() {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    // Verifica se o usuário veio da tela de Planos (intenção)
-    const intencaoSalva = localStorage.getItem('intencao');
-    setIntencao(intencaoSalva);
-
-    // Verifica se o usuário já tem loja
-    async function verificarLoja() {
-      if (!user) {
-        setVerificando(false);
-        return;
-      }
-      const lojaRef = doc(db, "barbearias", user.uid);
-      const lojaSnap = await getDoc(lojaRef);
-      if (lojaSnap.exists()) {
-        setJaTemLoja(true);
-      }
-      setVerificando(false);
-    }
-    verificarLoja();
-  }, [user]);
-
   const planos = [
-    // ... (mantenha os planos como estão)
     {
       id: 'basico',
       nome: 'Plano Básico',
@@ -116,43 +91,6 @@ export default function Planos() {
     localStorage.setItem('intencao', 'profissional');
     localStorage.setItem('abrirLogin', 'true');
     navigate('/');
-  }
-
-  // Tela de carregamento
-  if (verificando) return <p style={{ padding: '40px', color: 'var(--muted)', textAlign: 'center' }}>Verificando...</p>;
-
-  // Se já tem loja, bloqueia
-  if (jaTemLoja) {
-    return (
-      <div style={{ textAlign: 'center', padding: '50px' }}>
-        <h2 style={{ color: 'var(--primary)', marginBottom: '16px' }}>Você já tem uma loja ativa!</h2>
-        <p style={{ color: 'var(--muted)', marginBottom: '24px' }}>Acesse seu painel para gerenciar sua agenda.</p>
-        <Link to="/painel" className="btn-primary">Ir para o Painel</Link>
-      </div>
-    );
-  }
-
-  // Se não tem intenção de ser profissional, bloqueia
-  if (!intencao || intencao !== 'profissional') {
-    return (
-      <div style={{ textAlign: 'center', padding: '50px' }}>
-        <h2 style={{ color: 'var(--primary)', marginBottom: '16px' }}>Área para Profissionais</h2>
-        <p style={{ color: 'var(--muted)', marginBottom: '24px' }}>
-          Esta área é destinada a profissionais que desejam criar uma loja e receber agendamentos.
-        </p>
-        <button 
-          className="btn-primary" 
-          onClick={() => { 
-            localStorage.setItem('intencao', 'profissional');
-            navigate('/planos');
-            window.location.reload();
-          }}
-        >
-          Quero ser Profissional
-        </button>
-        <Link to="/" className="btn-outline" style={{ marginLeft: '12px' }}>Voltar para o Início</Link>
-      </div>
-    );
   }
 
   return (

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { collection, addDoc, onSnapshot, query, where, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Plus, Trash2, User, Lock, Camera } from 'lucide-react';
+import { Plus, Trash2, User, Lock, Camera, Phone } from 'lucide-react'; // Adicionei o Phone
 import { Link } from 'react-router-dom';
 import './Equipe.css';
 
@@ -10,54 +10,63 @@ export default function Equipe() {
   const [equipe, setEquipe] = useState([]);
   const [nome, setNome] = useState('');
   const [especialidade, setEspecialidade] = useState('');
-  const [fotoUrl, setFotoUrl] = useState(''); // <-- ESTADO AQUI DENTRO
+  const [fotoUrl, setFotoUrl] = useState('');
+  const [whatsapp, setWhatsapp] = useState(''); // NOVO ESTADO
   const [carregando, setCarregando] = useState(true);
   const [plano, setPlano] = useState('basico');
 
-  // 1. Verifica o plano do dono
+  // useEffect UNIFICADO E CORRIGIDO
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let unsubscribeEquipe = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        // 1. Verifica o plano
         const lojaRef = doc(db, "barbearias", user.uid);
         const lojaSnap = await getDoc(lojaRef);
         if (lojaSnap.exists()) {
           setPlano(lojaSnap.data().plano || 'basico');
         }
+
+        // 2. Puxa a equipe APENAS quando o usuário estiver confirmado
+        const q = query(collection(db, "funcionarios"), where("lojaId", "==", user.uid));
+        unsubscribeEquipe = onSnapshot(q, (snapshot) => {
+          const lista = [];
+          snapshot.forEach((doc) => {
+            lista.push({ id: doc.id, ...doc.data() });
+          });
+          setEquipe(lista);
+          setCarregando(false);
+        });
+      } else {
+        setCarregando(false);
       }
     });
-    return () => unsubscribe();
-  }, []);
 
-  // 2. Puxa a equipe em tempo real
-  useEffect(() => {
-    if (!auth.currentUser) return;
-    const q = query(collection(db, "funcionarios"), where("lojaId", "==", auth.currentUser.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const lista = [];
-      snapshot.forEach((doc) => {
-        lista.push({ id: doc.id, ...doc.data() });
-      });
-      setEquipe(lista);
-      setCarregando(false);
-    });
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeEquipe) unsubscribeEquipe();
+    };
   }, []);
 
   async function adicionarMembro(e) {
     e.preventDefault();
-    if (!nome || !auth.currentUser) return;
+    // Agora exige o WhatsApp também
+    if (!nome || !whatsapp || !auth.currentUser) return; 
 
     try {
       await addDoc(collection(db, "funcionarios"), {
         lojaId: auth.currentUser.uid,
         nome,
         especialidade: especialidade || 'Barbeiro',
-        fotoUrl: fotoUrl, // <-- SALVA A FOTO AQUI
+        fotoUrl: fotoUrl,
+        whatsapp: whatsapp, // SALVA O WHATSAPP AQUI
         criadoEm: new Date()
       });
       setNome('');
       setEspecialidade('');
-      setFotoUrl(''); // <-- LIMPA A FOTO
+      setFotoUrl('');
+      setWhatsapp(''); // LIMPA O WHATSAPP
     } catch (error) {
       console.error("Erro ao adicionar:", error);
       alert("Erro ao adicionar membro.");
@@ -108,6 +117,18 @@ export default function Equipe() {
             <input type="text" placeholder="Ex: Degradê, Barba" value={especialidade} onChange={e => setEspecialidade(e.target.value)} />
           </div>
 
+          {/* NOVO CAMPO: WHATSAPP */}
+          <div className="input-group">
+            <label><Phone size={14} /> WhatsApp (com DDD)</label>
+            <input 
+              type="tel" 
+              placeholder="Ex: 11999998888" 
+              value={whatsapp} 
+              onChange={e => setWhatsapp(e.target.value.replace(/\D/g, ''))} // Remove tudo que não for número
+              required 
+            />
+          </div>
+
           <div className="input-group">
             <label><Camera size={14} /> URL da Foto do Profissional</label>
             <input 
@@ -142,6 +163,12 @@ export default function Equipe() {
                   <div>
                     <h4>{membro.nome}</h4>
                     <span>{membro.especialidade}</span>
+                    {/* Mostra o WhatsApp cadastrado no card */}
+                    {membro.whatsapp && (
+                      <p style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Phone size={12} /> {membro.whatsapp}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <button className="btn-delete" onClick={() => removerMembro(membro.id)}>

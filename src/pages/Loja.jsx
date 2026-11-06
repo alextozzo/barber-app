@@ -15,6 +15,7 @@ export default function Loja() {
   const [erro, setErro] = useState('');
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [loginMode, setLoginMode] = useState('login');
   const [user, setUser] = useState(undefined);
   const [abaAtiva, setAbaAtiva] = useState('servicos');
   const [mediaAvaliacao, setMediaAvaliacao] = useState(5.0);
@@ -113,13 +114,8 @@ export default function Loja() {
     'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=600',
   ];
 
-  // Define o limite de fotos conforme o plano
   const limiteFotos = loja.plano === 'premium' ? 5 : loja.plano === 'pro' ? 3 : 0;
-
-  // Pega as fotos reais (filtra as vazias) e limita ao máximo do plano
   const fotosReais = (loja.galeria || []).filter(f => f).slice(0, limiteFotos);
-
-  // Se for Básico, não mostra galeria. Se for Pro/Premium sem fotos, mostra exemplo.
   const fotosParaExibir = limiteFotos === 0 
     ? [] 
     : (fotosReais.length > 0 ? fotosReais : galeriaExemplo.slice(0, limiteFotos));
@@ -140,7 +136,27 @@ export default function Loja() {
             {user ? (
               <span style={{ color: 'var(--cream)', fontSize: '14px' }}>Olá, {user.displayName}</span>
             ) : (
-              <button className="btn-outline" onClick={() => setLoginOpen(true)}>Entrar</button>
+              <>
+                <button 
+                  className="btn-outline" 
+                  onClick={() => { 
+                    setLoginMode('login'); 
+                    setLoginOpen(true); 
+                  }}
+                >
+                  Entrar
+                </button>
+                <button 
+                  className="btn-primary" 
+                  onClick={() => { 
+                    setLoginMode('register'); 
+                    setLoginOpen(true); 
+                  }}
+                  style={{ marginLeft: '8px' }}
+                >
+                  Criar Conta
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -165,7 +181,6 @@ export default function Loja() {
           </button>
         </div>
 
-        {/* GALERIA DE FOTOS (SÓ APARECE SE O PLANO PERMITIR) */}
         {fotosParaExibir.length > 0 && (
           <div className="loja-galeria">
             {fotosParaExibir.map((foto, index) => (
@@ -174,7 +189,6 @@ export default function Loja() {
           </div>
         )}
 
-        {/* SEÇÃO SOBRE */}
         {loja.sobre && (
           <div className="loja-sobre card">
             <h3>Sobre o Estabelecimento</h3>
@@ -182,7 +196,6 @@ export default function Loja() {
           </div>
         )}
 
-        {/* COMO AGENDAR */}
         <div className="loja-como-agendar card">
           <h3>Como Agendar</h3>
           <div className="passos-agendar">
@@ -200,17 +213,17 @@ export default function Loja() {
                 <p>Selecione o melhor dia e horário para você.</p>
               </div>
             </div>
+            {/* TEXTO ATUALIZADO AQUI */}
             <div className="passo-item">
               <div className="passo-numero">3</div>
               <div>
-                <h4>Pague e Confirme</h4>
-                <p>Faça o Pix para a chave do profissional e clique em "Já Paguei".</p>
+                <h4>Confirme seu Horário</h4>
+                <p>Se preferir, realize o pagamento antecipado via Pix. Caso contrário, pague no local no dia do atendimento.</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* COMODIDADES */}
         <div className="loja-comodidades card">
           <h3>Comodidades</h3>
           <div className="comodidades-grid">
@@ -226,7 +239,6 @@ export default function Loja() {
           </div>
         </div>
 
-        {/* ABAS */}
         <div className="loja-abas">
           <button className={`aba-btn ${abaAtiva === 'servicos' ? 'active' : ''}`} onClick={() => setAbaAtiva('servicos')}>
             Serviços
@@ -260,7 +272,6 @@ export default function Loja() {
           )}
         </div>
 
-        {/* INFORMAÇÕES (Endereço, Pix, etc) */}
         <div className="loja-info-grid">
           {loja.endereco && (
             <div className="info-card card">
@@ -355,12 +366,16 @@ export default function Loja() {
         <BookingModal 
           barber={selectedBarber} 
           onClose={() => setSelectedBarber(null)} 
-          onAskLogin={() => setLoginOpen(true)}
+          onAskLogin={() => { 
+            setSelectedBarber(null);
+            setLoginMode('login');
+            setLoginOpen(true); 
+          }} 
         />
       )}
 
       {loginOpen && (
-        <LoginModal onClose={() => setLoginOpen(false)} />
+        <LoginModal onClose={() => setLoginOpen(false)} initialMode={loginMode} />
       )}
     </>
   );

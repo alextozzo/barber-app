@@ -1,8 +1,7 @@
 import { LogOut, Store, Menu, X, Calendar } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { auth, db } from '../firebase';
+import { auth } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import PerfilCliente from './PerfilCliente'; 
 import './Navbar.css';
@@ -22,30 +21,8 @@ export default function Navbar({ onLoginClick, onBookClick }) {
 
   async function handleLogout() {
     await signOut(auth);
-    localStorage.removeItem('logado');
+    localStorage.removeItem('logado'); // <-- LIMPA A FLAG
     alert('Você saiu da conta.');
-    setMenuOpen(false);
-  }
-
-  // Verifica se o usuário já tem loja e redireciona
-  async function handleProfissionalClick() {
-    const currentUser = auth.currentUser;
-
-    if (currentUser) {
-      const lojaRef = doc(db, "barbearias", currentUser.uid);
-      const lojaSnap = await getDoc(lojaRef);
-
-      if (lojaSnap.exists()) {
-        // Já tem loja, vai direto para o painel
-        navigate('/painel');
-        setMenuOpen(false);
-        return;
-      }
-    }
-
-    // Se não tem loja ou não está logado, vai para Planos
-    localStorage.setItem('intencao', 'profissional');
-    navigate('/planos');
     setMenuOpen(false);
   }
 
@@ -69,7 +46,11 @@ export default function Navbar({ onLoginClick, onBookClick }) {
             
             <li>
               <button 
-                onClick={handleProfissionalClick} 
+                onClick={() => { 
+                  localStorage.setItem('intencao', 'profissional');
+                  navigate('/planos'); 
+                  setMenuOpen(false); 
+                }} 
                 style={{ background: 'none', color: 'var(--primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <Store size={16} /> Sou Profissional
@@ -93,14 +74,7 @@ export default function Navbar({ onLoginClick, onBookClick }) {
               </li>
             ) : (
               <li>
-                <button 
-                  className="btn-outline" 
-                  onClick={() => { 
-                    localStorage.removeItem('intencao');
-                    onLoginClick(); 
-                    setMenuOpen(false); 
-                  }}
-                >
+                <button className="btn-outline" onClick={() => { onLoginClick(); setMenuOpen(false); }}>
                   Entrar
                 </button>
               </li>

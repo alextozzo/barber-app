@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { auth, db } from '../firebase'; 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './LoginModal.css';
 
 export default function LoginModal({ onClose }) {
@@ -16,6 +16,7 @@ export default function LoginModal({ onClose }) {
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   function handleTelefone(e) {
     let value = e.target.value.replace(/\D/g, '');
@@ -71,13 +72,14 @@ export default function LoginModal({ onClose }) {
       
       localStorage.setItem('logado', 'true');
 
-      // --- LÓGICA DE REDIRECIONAMENTO CORRIGIDA ---
+      const intencao = localStorage.getItem('intencao');
+      
+      // --- LÓGICA DE REDIRECIONAMENTO ---
       const lojaRef = doc(db, "barbearias", userCredential.user.uid);
       const lojaSnap = await getDoc(lojaRef);
-      const intencao = localStorage.getItem('intencao');
 
       if (lojaSnap.exists()) {
-        // Usuário já tem loja. Vai para painel ou checkout.
+        // Usuário já tem loja (é profissional). Vai para painel ou checkout.
         const dadosLoja = lojaSnap.data();
         localStorage.removeItem('intencao');
         onClose();
@@ -91,7 +93,7 @@ export default function LoginModal({ onClose }) {
         }, 500);
 
       } else if (intencao === 'profissional') {
-        // Usuário é profissional mas não tem loja ainda.
+        // Profissional novo (não tem loja). Vai para criar loja.
         localStorage.removeItem('intencao');
         onClose();
         setTimeout(() => {
@@ -99,8 +101,9 @@ export default function LoginModal({ onClose }) {
         }, 500);
 
       } else {
-        // Usuário é cliente. Apenas fecha o modal.
+        // CLIENTE: Apenas fecha o modal. Se estava na página da loja, continua lá.
         onClose();
+        // O cliente permanece na página atual (ex: /slug-da-loja) e pode clicar em Agendar de novo.
       }
 
     } catch (error) {

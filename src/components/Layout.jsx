@@ -17,6 +17,7 @@ export default function Layout() {
             <Calendar size={18} /> Agenda
           </Link>
           
+          {/* ÍCONE NEUTRO: Briefcase no lugar de Scissors */}
           <Link to="/servicos" className={location.pathname === '/servicos' ? 'active' : ''}>
             <Briefcase size={18} /> Serviços
           </Link>
@@ -34,10 +35,7 @@ export default function Layout() {
             <BarChart2 size={18} /> Financeiro
           </Link>
 
-          {/* LINK DE CLIENTES CORRIGIDO */}
-          <Link to="/clientes" className={location.pathname === '/clientes' ? 'active' : ''}>
-            <Users size={18} /> Clientes
-          </Link>
+          <a href="#"><Users size={18} /> Clientes</a>
         </nav>
         <Link to="/" className="btn-outline logout-btn">
           <LogOut size={16} /> Sair

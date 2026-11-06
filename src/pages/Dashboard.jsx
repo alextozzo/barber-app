@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDoc, increment } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Calendar, CheckCircle, Clock, Lock, TrendingUp, DollarSign, Bell, X, Link as LinkIcon } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, Lock, TrendingUp, DollarSign, Bell, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Dashboard() {
@@ -13,7 +13,6 @@ export default function Dashboard() {
   const [fidelidadeAtiva, setFidelidadeAtiva] = useState(false);
   const [proximoCliente, setProximoCliente] = useState(null);
   const [mostrarBannerNotificacao, setMostrarBannerNotificacao] = useState(false);
-  const [slugLoja, setSlugLoja] = useState('');
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -52,7 +51,6 @@ export default function Dashboard() {
           const data = lojaSnap.data();
           setPlano(data.plano || 'basico');
           setFidelidadeAtiva(data.fidelidadeAtiva || false);
-          setSlugLoja(data.slug || '');
         }
       } catch (error) { console.error(error); }
     }
@@ -156,38 +154,6 @@ export default function Dashboard() {
             <button className="btn-primary" onClick={ativarNotificacoes}>Ativar</button>
             <button className="btn-close-banner" onClick={() => setMostrarBannerNotificacao(false)}>
               <X size={20} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* CARD DE DIVULGAÇÃO DO LINK */}
-      {slugLoja && (
-        <div className="card" style={{ padding: '24px', marginBottom: '24px', borderColor: 'var(--primary)' }}>
-          <h3 style={{ color: 'var(--primary)', marginBottom: '8px' }}>Sua agenda está pronta! 🎉</h3>
-          <p style={{ color: 'var(--muted)', fontSize: '14px', marginBottom: '16px' }}>
-            Copie o link abaixo e coloque na bio do seu Instagram para receber agendamentos.
-          </p>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <code style={{ 
-              background: 'rgba(0,0,0,0.3)', 
-              padding: '10px 16px', 
-              borderRadius: '6px', 
-              color: 'var(--primary)',
-              fontSize: '14px',
-              flex: 1,
-              minWidth: '200px'
-            }}>
-              aplicativo-de-barbearia-sandy.vercel.app/{slugLoja}
-            </code>
-            <button 
-              className="btn-primary" 
-              onClick={() => {
-                navigator.clipboard.writeText(`https://aplicativo-de-barbearia-sandy.vercel.app/${slugLoja}`);
-                alert('Link copiado!');
-              }}
-            >
-              <LinkIcon size={16} style={{ marginRight: '8px' }} /> Copiar Link
             </button>
           </div>
         </div>

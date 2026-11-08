@@ -37,7 +37,7 @@ export default function Loja() {
         if (!querySnapshot.empty) {
           const dadosLoja = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
           
-          if (dadosLoja.statusPagamento !== 'ativo') {
+          if (dadosLoja.statusPagamento !== 'ativo' && dadosLoja.statusPagamento !== 'aprovado') {
             setErro("Esta página está temporariamente indisponível. O profissional precisa regularizar a assinatura.");
             setCarregando(false);
             return;
@@ -163,22 +163,30 @@ export default function Loja() {
       </nav>
 
       <main className="loja-main">
-        <div className="loja-header card">
-          <div className="loja-avatar">
-            <img src={barbeiro.photo} alt={loja.nome} />
-          </div>
-          <div className="loja-info">
-            <h1>{loja.nome}</h1>
-            <div className="rating">
-              <Star size={16} fill="var(--primary)" color="var(--primary)" />
-              <span>{mediaAvaliacao.toFixed(1)}</span>
-              <span className="reviews">({totalAvaliacoes} avaliações)</span>
+        {/* HEADER COM BANNER E FOTO SOBREPOSTA */}
+        <div className="loja-header">
+          <div className="loja-banner-bg" style={{ backgroundImage: `linear-gradient(to right, ${loja.corPrincipal || '#3B82F6'}, #111)` }}></div>
+          <div className="loja-header-content">
+            <div className="loja-avatar">
+              <img src={barbeiro.photo} alt={loja.nome} />
             </div>
-            <p style={{ textTransform: 'capitalize' }}>Especialidades: {barbeiro.specialties.join(', ')}</p>
+            <div className="loja-info">
+              <h1>{loja.nome}</h1>
+              <div className="rating">
+                <Star size={16} fill="var(--primary)" color="var(--primary)" />
+                <span>{mediaAvaliacao.toFixed(1)}</span>
+                <span className="reviews">({totalAvaliacoes} avaliações)</span>
+              </div>
+              <p>Especialidades: {barbeiro.specialties.join(', ')}</p>
+            </div>
+            <button 
+              className="btn-primary" 
+              onClick={() => setSelectedBarber(barbeiro)}
+              style={{ padding: '14px 32px', fontSize: '16px', borderRadius: '8px', boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)' }}
+            >
+              Agendar Horário
+            </button>
           </div>
-          <button className="btn-primary" onClick={() => setSelectedBarber(barbeiro)}>
-            Agendar Horário
-          </button>
         </div>
 
         {fotosParaExibir.length > 0 && (
@@ -213,7 +221,6 @@ export default function Loja() {
                 <p>Selecione o melhor dia e horário para você.</p>
               </div>
             </div>
-            {/* TEXTO ATUALIZADO AQUI */}
             <div className="passo-item">
               <div className="passo-numero">3</div>
               <div>
@@ -229,10 +236,10 @@ export default function Loja() {
           <div className="comodidades-grid">
             {comodidadesParaExibir.map((item, index) => (
               <div key={index} className="comodidade-item">
-                {item === 'Wi-Fi' && <Wifi size={20} />}
-                {item === 'Estacionamento' && <Car size={20} />}
-                {item === 'Acessibilidade' && <Accessibility size={20} />}
-                {item === 'Atende Crianças' && <Baby size={20} />}
+                {item === 'Wi-Fi' && <Wifi size={20} color="var(--primary)" />}
+                {item === 'Estacionamento' && <Car size={20} color="var(--primary)" />}
+                {item === 'Acessibilidade' && <Accessibility size={20} color="var(--primary)" />}
+                {item === 'Atende Crianças' && <Baby size={20} color="var(--primary)" />}
                 <span>{item}</span>
               </div>
             ))}
@@ -287,7 +294,7 @@ export default function Loja() {
               <div className="info-icon"><Phone size={20} /></div>
               <div>
                 <h4>WhatsApp</h4>
-                <a href={`https://wa.me/55${loja.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)' }}>
+                <a href={`https://wa.me/55${loja.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">
                   {loja.whatsapp}
                 </a>
               </div>
@@ -298,7 +305,7 @@ export default function Loja() {
               <div className="info-icon"><AtSign size={20} /></div>
               <div>
                 <h4>Instagram</h4>
-                <a href={`https://instagram.com/${loja.instagram.replace('@', '')}`} target="_blank" rel="noreferrer" style={{ color: 'var(--primary)' }}>
+                <a href={`https://instagram.com/${loja.instagram.replace('@', '')}`} target="_blank" rel="noreferrer">
                   {loja.instagram}
                 </a>
               </div>

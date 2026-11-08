@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
-import { doc, setDoc, getDoc, collection, addDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { Store, Link as LinkIcon, Camera, Clock, Utensils, MapPin, AtSign, Phone, DollarSign, Image } from 'lucide-react';
+import { Store, Link as LinkIcon, Camera, Clock, Utensils, MapPin, AtSign, Phone, DollarSign, Image, AlertCircle } from 'lucide-react';
 import './CriarLoja.css';
 
 export default function CriarLoja() {
@@ -29,14 +29,16 @@ export default function CriarLoja() {
   const [almocoFim, setAlmocoFim] = useState('13:00');
   const [corPrincipal, setCorPrincipal] = useState('#3B82F6');
 
+  // NOVOS ESTADOS: Política de Cancelamento
+  const [prazoCancelamento, setPrazoCancelamento] = useState(2); 
+  const [taxaCancelamento, setTaxaCancelamento] = useState(0);
+
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [usuario, setUsuario] = useState(undefined); 
   const navigate = useNavigate();
 
   const planoEscolhido = localStorage.getItem('planoEscolhido') || 'basico';
-
-  // Define quantas fotos o plano permite
   const limiteFotos = planoEscolhido === 'premium' ? 5 : planoEscolhido === 'pro' ? 3 : 0;
 
   useEffect(() => {
@@ -69,7 +71,6 @@ export default function CriarLoja() {
           setChavePix(data.chavePix || '');
           setSobre(data.sobre || '');
           
-          // Preenche a galeria com 5 espaços, puxando os dados salvos
           const galeriaSalva = data.galeria || [];
           const galeriaCompleta = Array(5).fill('').map((_, i) => galeriaSalva[i] || '');
           setGaleria(galeriaCompleta);
@@ -80,6 +81,10 @@ export default function CriarLoja() {
           setAlmocoInicio(data.almocoInicio || '12:00');
           setAlmocoFim(data.almocoFim || '13:00');
           setCorPrincipal(data.corPrincipal || '#3B82F6');
+
+          // Carrega a política de cancelamento salva
+          setPrazoCancelamento(data.prazoCancelamento || 2);
+          setTaxaCancelamento(data.taxaCancelamento || 0);
         }
       } catch (error) {
         console.error("Erro ao buscar loja:", error);
@@ -103,7 +108,6 @@ export default function CriarLoja() {
   function handleWhatsApp(e) {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length > 11) value = value.slice(0, 11);
-    
     if (value.length <= 10) {
       value = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
     } else {
@@ -145,7 +149,16 @@ export default function CriarLoja() {
 
     setSalvando(true);
     try {
-      // Salva apenas as fotos permitidas pelo plano
+      const lojasRef = collection(db, "barbearias");
+      const q = query(lojasRef, where("slug", "==", slug));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty && querySnapshot.docs[0].id !== usuario.uid) {
+        alert("⚠️ Este link já está em uso por outra barbearia. Escolha outro.");
+        setSalvando(false);
+        return;
+      }
+
       const galeriaFinal = galeria.slice(0, limiteFotos);
 
       await setDoc(doc(db, "barbearias", usuario.uid), {
@@ -170,28 +183,18 @@ export default function CriarLoja() {
         statusPagamento: 'pendente',
         donoId: usuario.uid,
         donoEmail: usuario.email,
-        criadoEm: new Date()
+        criadoEm: new Date(),
+        // SALVANDO OS NOVOS CAMPOS DE CANCELAMENTO
+        prazoCancelamento: Number(prazoCancelamento),
+        taxaCancelamento: Number(taxaCancelamento)
       });
 
       const servicosPadrao = {
-        barbearia: [
-          { nome: 'Corte Clássico', duracao: 30, preco: 60 },
-          { nome: 'Corte + Barba', duracao: 60, preco: 100 },
-        ],
-        manicure: [
-          { nome: 'Manicure Simples', duracao: 40, preco: 40 },
-          { nome: 'Pedicure', duracao: 40, preco: 40 },
-        ],
-        tatuador: [
-          { nome: 'Sessão Pequena', duracao: 60, preco: 200 },
-          { nome: 'Sessão Média', duracao: 120, preco: 400 },
-        ],
-        estetica: [
-          { nome: 'Limpeza de Pele', duracao: 60, preco: 120 },
-        ],
-        pet: [
-          { nome: 'Banho Pequeno Porte', duracao: 60, preco: 60 },
-        ]
+        barbearia: [ { nome: 'Corte Clássico', duracao: 30, preco: 60 }, { nome: 'Corte + Barba', duracao: 60, preco: 100 } ],
+        manicure: [ { nome: 'Manicure Simples', duracao: 40, preco: 40 }, { nome: 'Pedicure', duracao: 40, preco: 40 } ],
+        tatuador: [ { nome: 'Sessão Pequena', duracao: 60, preco: 200 }, { nome: 'Sessão Média', duracao: 120, preco: 400 } ],
+        estetica: [ { nome: 'Limpeza de Pele', duracao: 60, preco: 120 } ],
+        pet: [ { nome: 'Banho Pequeno Porte', duracao: 60, preco: 60 } ]
       };
 
       const servicosParaCriar = servicosPadrao[nicho] || servicosPadrao.barbearia;
@@ -205,7 +208,7 @@ export default function CriarLoja() {
         });
       }
 
-      alert(`✅ Loja criada com sucesso!`);
+      alert(`✅ Loja salva com sucesso!\n\nSeu link é: quero1horario.com.br/${slug}`);
       navigate('/checkout'); 
       
     } catch (error) {
@@ -216,31 +219,15 @@ export default function CriarLoja() {
     }
   }
 
-  if (usuario === undefined) {
-    return <p style={{ textAlign: 'center', marginTop: '50px', color: 'var(--muted)' }}>Verificando login...</p>;
-  }
-
-  if (usuario === null) {
-    return (
-      <div style={{ textAlign: 'center', marginTop: '100px' }}>
-        <h2 style={{ color: 'var(--primary)', marginBottom: '20px' }}>Acesso Restrito</h2>
-        <p style={{ color: 'var(--muted)', marginBottom: '30px' }}>Você precisa estar logado para criar sua loja.</p>
-        <button 
-          className="btn-primary" 
-          onClick={() => {
-            localStorage.setItem('abrirLogin', 'true');
-            navigate('/');
-          }} 
-        >
-          Fazer Login ou Cadastro
-        </button>
-      </div>
-    );
-  }
-
-  if (carregando) {
-    return <p style={{ textAlign: 'center', marginTop: '50px', color: 'var(--muted)' }}>Carregando dados da loja...</p>;
-  }
+  if (usuario === undefined) return <p style={{ textAlign: 'center', marginTop: '50px', color: 'var(--muted)' }}>Verificando login...</p>;
+  if (usuario === null) return (
+    <div style={{ textAlign: 'center', marginTop: '100px' }}>
+      <h2 style={{ color: 'var(--primary)', marginBottom: '20px' }}>Acesso Restrito</h2>
+      <p style={{ color: 'var(--muted)', marginBottom: '30px' }}>Você precisa estar logado para criar sua loja.</p>
+      <button className="btn-primary" onClick={() => { localStorage.setItem('abrirLogin', 'true'); navigate('/'); }}>Fazer Login ou Cadastro</button>
+    </div>
+  );
+  if (carregando) return <p style={{ textAlign: 'center', marginTop: '50px', color: 'var(--muted)' }}>Carregando dados da loja...</p>;
 
   return (
     <div className="criar-loja-container">
@@ -259,11 +246,7 @@ export default function CriarLoja() {
 
           <div className="input-group">
             <label>Tipo de Negócio</label>
-            <select 
-              value={nicho} 
-              onChange={e => setNicho(e.target.value)}
-              style={{ width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '6px', padding: '14px', color: 'var(--cream)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-            >
+            <select value={nicho} onChange={e => setNicho(e.target.value)} style={{ width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '6px', padding: '14px', color: 'var(--cream)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
               <option value="barbearia">Barbearia</option>
               <option value="manicure">Manicure / Salão</option>
               <option value="tatuador">Tatuador / Estúdio</option>
@@ -279,13 +262,7 @@ export default function CriarLoja() {
 
           <div className="input-group">
             <label>Sobre a Loja (Apresentação)</label>
-            <textarea 
-              value={sobre} 
-              onChange={e => setSobre(e.target.value)} 
-              placeholder="Conte um pouco sobre sua história, seus diferenciais e o que os clientes podem esperar..." 
-              rows="4"
-              style={{ width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '6px', padding: '14px', color: 'var(--cream)', fontFamily: 'Plus Jakarta Sans, sans-serif', resize: 'vertical' }}
-            />
+            <textarea value={sobre} onChange={e => setSobre(e.target.value)} placeholder="Conte um pouco sobre sua história..." rows="4" style={{ width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border)', borderRadius: '6px', padding: '14px', color: 'var(--cream)', fontFamily: 'Plus Jakarta Sans, sans-serif', resize: 'vertical' }} />
           </div>
 
           <div className="input-row" style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
@@ -324,40 +301,53 @@ export default function CriarLoja() {
           </div>
 
           <div className="input-row" style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
-            <div className="input-group" style={{ flex: 1 }}>
-              <label><Clock size={14} /> Abertura</label>
-              <input type="time" value={abertura} onChange={e => setAbertura(e.target.value)} required />
-            </div>
-            <div className="input-group" style={{ flex: 1 }}>
-              <label><Clock size={14} /> Fechamento</label>
-              <input type="time" value={fechamento} onChange={e => setFechamento(e.target.value)} required />
-            </div>
+            <div className="input-group" style={{ flex: 1 }}><label><Clock size={14} /> Abertura</label><input type="time" value={abertura} onChange={e => setAbertura(e.target.value)} required /></div>
+            <div className="input-group" style={{ flex: 1 }}><label><Clock size={14} /> Fechamento</label><input type="time" value={fechamento} onChange={e => setFechamento(e.target.value)} required /></div>
           </div>
 
           <div className="input-row" style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
-            <div className="input-group" style={{ flex: 1 }}>
-              <label><Utensils size={14} /> Início do Almoço</label>
-              <input type="time" value={almocoInicio} onChange={e => setAlmocoInicio(e.target.value)} required />
-            </div>
-            <div className="input-group" style={{ flex: 1 }}>
-              <label><Utensils size={14} /> Fim do Almoço</label>
-              <input type="time" value={almocoFim} onChange={e => setAlmocoFim(e.target.value)} required />
+            <div className="input-group" style={{ flex: 1 }}><label><Utensils size={14} /> Início do Almoço</label><input type="time" value={almocoInicio} onChange={e => setAlmocoInicio(e.target.value)} required /></div>
+            <div className="input-group" style={{ flex: 1 }}><label><Utensils size={14} /> Fim do Almoço</label><input type="time" value={almocoFim} onChange={e => setAlmocoFim(e.target.value)} required /></div>
+          </div>
+
+          {/* NOVO BLOCO: POLÍTICA DE CANCELAMENTO */}
+          <div style={{ padding: '20px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '20px' }}>
+            <h4 style={{ fontSize: '14px', color: 'var(--primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertCircle size={16} /> Política de Cancelamento
+            </h4>
+            
+            <div className="input-row" style={{ display: 'flex', gap: '16px', marginBottom: '0' }}>
+              <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
+                <label>Prazo Mínimo (Horas)</label>
+                <input 
+                  type="number" 
+                  min="0"
+                  value={prazoCancelamento} 
+                  onChange={e => setPrazoCancelamento(e.target.value)} 
+                  placeholder="Ex: 2"
+                />
+                <span style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px', display: 'block' }}>Horas de antecedência.</span>
+              </div>
+              <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
+                <label>Taxa de Multa (%)</label>
+                <input 
+                  type="number" 
+                  min="0"
+                  max="100"
+                  value={taxaCancelamento} 
+                  onChange={e => setTaxaCancelamento(e.target.value)} 
+                  placeholder="Ex: 30"
+                />
+                <span style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px', display: 'block' }}>0 = isento de multa.</span>
+              </div>
             </div>
           </div>
 
-          {/* GALERIA DE FOTOS - SÓ APARECE PARA PRO E PREMIUM */}
           {limiteFotos > 0 && (
             <div className="input-group">
               <label><Image size={14} /> Galeria de Fotos ({limiteFotos} fotos)</label>
               {galeria.slice(0, limiteFotos).map((foto, index) => (
-                <input 
-                  key={index}
-                  type="url" 
-                  value={foto} 
-                  onChange={e => atualizarGaleria(index, e.target.value)} 
-                  placeholder={`Foto ${index + 1} (https://...)`}
-                  style={{ marginBottom: '8px' }}
-                />
+                <input key={index} type="url" value={foto} onChange={e => atualizarGaleria(index, e.target.value)} placeholder={`Foto ${index + 1} (https://...)`} style={{ marginBottom: '8px' }} />
               ))}
             </div>
           )}

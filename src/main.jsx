@@ -13,7 +13,8 @@ import Checkout from './pages/Checkout.jsx'
 import MinhaConta from './pages/MinhaConta.jsx'
 import Equipe from './pages/Equipe.jsx'
 import Assinaturas from './pages/Assinaturas.jsx'
-import Financeiro from './pages/Financeiro.jsx' // <-- IMPORT AQUI EM CIMA
+import Financeiro from './pages/Financeiro.jsx'
+import Legal from './pages/Legal.jsx' // <-- IMPORT DA NOVA PÁGINA AQUI
 import Layout from './components/Layout.jsx'
 import './index.css'
 
@@ -27,6 +28,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/admin" element={<SuperAdmin />} />
         <Route path="/minha-conta" element={<MinhaConta />} />
+        <Route path="/termos" element={<Legal />} /> {/* <-- ROTA DOS TERMOS AQUI */}
 
         <Route element={<Layout />}>
           <Route path="/painel" element={<Dashboard />} />
@@ -34,7 +36,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/equipe" element={<Equipe />} />
           <Route path="/fidelidade" element={<Fidelidade />} />
           <Route path="/assinaturas" element={<Assinaturas />} />
-          <Route path="/financeiro" element={<Financeiro />} /> {/* <-- ROTA AQUI */}
+          <Route path="/financeiro" element={<Financeiro />} /> 
         </Route>
 
         <Route path="/:slug" element={<Loja />} /> 

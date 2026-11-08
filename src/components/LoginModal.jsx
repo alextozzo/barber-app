@@ -1,13 +1,13 @@
 import { X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Adicionei o useEffect aqui
 import { auth, db } from '../firebase'; 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './LoginModal.css';
 
-export default function LoginModal({ onClose }) {
-  const [mode, setMode] = useState('login');
+export default function LoginModal({ onClose, initialMode = 'login' }) {
+  const [mode, setMode] = useState(initialMode);
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
@@ -15,8 +15,20 @@ export default function LoginModal({ onClose }) {
   const [password, setPassword] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
+  
   const navigate = useNavigate();
   const location = useLocation();
+
+  // --- NOVO BLOCO DE CÓDIGO ---
+  // Se o usuário estiver na página de uma loja (ex: /barbearia-do-eder), limpa a intenção de ser profissional.
+  // Isso evita que clientes sejam redirecionados para criar loja por engano.
+  useEffect(() => {
+    const caminhosDeProfissional = ['/', '/planos', '/criar-loja'];
+    if (!caminhosDeProfissional.includes(location.pathname)) {
+      localStorage.removeItem('intencao');
+    }
+  }, [location.pathname]);
+  // ----------------------------
 
   function handleTelefone(e) {
     let value = e.target.value.replace(/\D/g, '');
@@ -85,7 +97,7 @@ export default function LoginModal({ onClose }) {
         onClose();
         
         setTimeout(() => {
-          if (dadosLoja.statusPagamento === 'ativo') {
+          if (dadosLoja.statusPagamento === 'ativo' || dadosLoja.statusPagamento === 'aprovado') {
             navigate('/painel');
           } else {
             navigate('/checkout');

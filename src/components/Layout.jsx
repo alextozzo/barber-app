@@ -1,9 +1,80 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, Calendar, Users, Briefcase, Award, CreditCard, Store, BarChart2 } from 'lucide-react';
+import { db, auth } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import './Layout.css';
 
 export default function Layout() {
   const location = useLocation(); 
+  const navigate = useNavigate();
+  const [carregando, setCarregando] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        navigate('/'); 
+        return;
+      }
+
+      try {
+        const docRef = doc(db, "barbearias", user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const dadosLoja = docSnap.data();
+          
+          // 1. Verifica se o pagamento está pendente de aprovação
+          if (dadosLoja.statusPagamento === 'pendente_aprovacao') {
+            alert("⏳ Seu pagamento está em análise.\n\nAguarde a liberação do administrador.");
+            navigate('/planos');
+            return; // Para a execução aqui
+          }
+
+          // 2. Verifica se a loja está ativa e tem validade
+          if (dadosLoja.statusPagamento === 'ativo' || dadosLoja.statusPagamento === 'aprovado') {
+            if (!dadosLoja.validadePlano) {
+              // Ativo mas sem data de validade (erro de cadastro, bloqueia)
+              alert("⚠️ Sua assinatura não possui validade definida. Entre em contato com o suporte.");
+              navigate('/planos');
+              return;
+            }
+
+            const hoje = new Date();
+            const validade = new Date(dadosLoja.validadePlano);
+
+            if (validade < hoje) {
+              // Assinatura venceu!
+              alert("⚠️ Sua assinatura expirou!\n\nPor favor, renove seu plano para continuar usando o sistema.");
+              navigate('/planos'); 
+              return;
+            }
+          } else {
+            // Qualquer outro status (ex: 'pendente', 'bloqueado') bloqueia o acesso
+            alert("⚠️ Sua loja não está ativa. Por favor, regularize sua assinatura.");
+            navigate('/planos');
+            return;
+          }
+        } else {
+          // Se não encontrar a loja, manda para criar
+          navigate('/criar-loja');
+          return;
+        }
+      } catch (error) {
+        console.error("Erro ao verificar validade:", error);
+      } finally {
+        setCarregando(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
+  // Enquanto verifica, mostra uma tela de loading
+  if (carregando) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--primary)' }}>Verificando acesso...</div>;
+  }
 
   return (
     <div className="dashboard-container">
@@ -17,7 +88,6 @@ export default function Layout() {
             <Calendar size={18} /> Agenda
           </Link>
           
-          {/* ÍCONE NEUTRO: Briefcase no lugar de Scissors */}
           <Link to="/servicos" className={location.pathname === '/servicos' ? 'active' : ''}>
             <Briefcase size={18} /> Serviços
           </Link>

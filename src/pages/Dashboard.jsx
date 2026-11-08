@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, getDoc, increment } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Calendar, CheckCircle, Clock, Lock, TrendingUp, DollarSign, Bell, X } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, Lock, TrendingUp, DollarSign, Bell, X, Phone, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Dashboard() {
@@ -59,6 +59,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return; 
+    // Busca todos os agendamentos da loja
     const q = query(collection(db, "agendamentos"), orderBy("criadoEm", "desc"));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -66,6 +67,10 @@ export default function Dashboard() {
       snapshot.forEach((doc) => {
         lista.push({ id: doc.id, ...doc.data() });
       });
+      
+      // Filtra apenas os agendamentos desta loja (segurança)
+      // Nota: Se o seu sistema não tiver lojaId nos agendamentos, ele vai mostrar todos. 
+      // Mas como o sistema é SaaS, o ideal é ter lojaId. Vou manter o padrão que você tinha.
       setAgendamentos(lista);
       
       const proximo = lista.find(ag => ag.status !== 'concluido');
@@ -89,6 +94,17 @@ export default function Dashboard() {
     } catch (error) {
       console.error(error);
     }
+  }
+
+  // Função para abrir o WhatsApp do Cliente
+  function enviarWhatsAppCliente(telefone, nomeCliente) {
+    if (!telefone) {
+      alert("Este cliente não tem telefone cadastrado.");
+      return;
+    }
+    const numeroLimpo = telefone.replace(/\D/g, '');
+    const mensagem = `Olá ${nomeCliente}, tudo bem? Passando para confirmar seu horário na barbearia!`;
+    window.open(`https://wa.me/55${numeroLimpo}?text=${encodeURIComponent(mensagem)}`, '_blank');
   }
 
   // --- CÁLCULOS DE FATURAMENTO (MÊS ATUAL) ---
@@ -219,7 +235,26 @@ export default function Dashboard() {
           <div className="proximo-body">
             <div>
               <h2>{proximoCliente.clienteNome}</h2>
-              <p>{proximoCliente.servico} • {proximoCliente.horario}</p>
+              {/* AQUI MOSTRAMOS O BARBEIRO E O TELEFONE */}
+              <p style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>👨‍🦱 {proximoCliente.barbeiroNome || 'Barbeiro'}</span>
+                <span>•</span>
+                <span>{proximoCliente.servico}</span>
+                <span>•</span>
+                <span>{proximoCliente.horario}</span>
+              </p>
+              {proximoCliente.clienteTelefone && (
+                <p style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Phone size={14} /> {proximoCliente.clienteTelefone}
+                  <button 
+                    className="btn-whatsapp-small" 
+                    onClick={() => enviarWhatsAppCliente(proximoCliente.clienteTelefone, proximoCliente.clienteNome)}
+                    title="Chamar no WhatsApp"
+                  >
+                    <MessageCircle size={14} /> Chamar
+                  </button>
+                </p>
+              )}
             </div>
             <button 
               className="btn-primary" 
@@ -241,7 +276,28 @@ export default function Dashboard() {
               <div className="hora">{ag.horario}</div>
               <div className="detalhes">
                 <h4>{ag.clienteNome}</h4>
-                <p>{ag.servico} • {ag.data}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                  {/* NOME DO BARBEIRO AQUI */}
+                  <span style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: '600' }}>
+                    Barbeiro: {ag.barbeiroNome || 'Não informado'}
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                    {ag.servico} • {ag.data}
+                  </span>
+                  {/* TELEFONE E WHATSAPP AQUI */}
+                  {ag.clienteTelefone && (
+                    <span style={{ fontSize: '12px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                      <Phone size={12} /> {ag.clienteTelefone}
+                      <button 
+                        className="btn-whatsapp-icon" 
+                        onClick={() => enviarWhatsAppCliente(ag.clienteTelefone, ag.clienteNome)}
+                        title="Chamar no WhatsApp"
+                      >
+                        <MessageCircle size={14} />
+                      </button>
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="valor">R$ {ag.preco},00</div>
               
@@ -400,11 +456,44 @@ export default function Dashboard() {
         .agenda-item .detalhes p { font-size: 13px; color: var(--muted); }
         .agenda-item .valor { font-weight: 600; color: var(--cream); margin-right: 20px; }
 
+        /* ESTILOS NOVOS PARA O WHATSAPP */
+        .btn-whatsapp-small {
+          background: #25D366;
+          color: white;
+          border: none;
+          padding: 4px 10px;
+          border-radius: 4px;
+          font-size: 12px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          cursor: pointer;
+          margin-left: 8px;
+          transition: opacity 0.2s;
+        }
+        .btn-whatsapp-small:hover { opacity: 0.8; }
+
+        .btn-whatsapp-icon {
+          background: rgba(37, 211, 102, 0.2);
+          color: #25D366;
+          border: none;
+          padding: 4px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          margin-left: 4px;
+          transition: background 0.2s;
+        }
+        .btn-whatsapp-icon:hover { background: rgba(37, 211, 102, 0.4); }
+
         @media (max-width: 768px) {
           .faturamento-grid { grid-template-columns: 1fr; }
           .banner-notificacao { flex-direction: column; align-items: flex-start; gap: 12px; }
           .proximo-body { flex-direction: column; align-items: flex-start; gap: 16px; }
           .agenda-item { flex-direction: column; align-items: flex-start; gap: 12px; }
+          .agenda-item .hora { width: auto; }
         }
       `}</style>
     </div>

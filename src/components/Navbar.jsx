@@ -21,7 +21,7 @@ export default function Navbar({ onLoginClick, onBookClick }) {
 
   async function handleLogout() {
     await signOut(auth);
-    localStorage.removeItem('logado'); // <-- LIMPA A FLAG
+    localStorage.removeItem('logado');
     alert('Você saiu da conta.');
     setMenuOpen(false);
   }
@@ -30,9 +30,10 @@ export default function Navbar({ onLoginClick, onBookClick }) {
     <>
       <nav className="navbar">
         <div className="nav-container">
+          {/* LOGO ATUALIZADA AQUI */}
           <a href="/" className="logo">
             <Calendar size={24} color="var(--primary)" />
-            <span>Agenda<em>ê</em></span>
+            <span>Quero<em>1</em>Horario</span>
           </a>
 
           <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)}>

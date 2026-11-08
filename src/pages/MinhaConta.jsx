@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { Calendar, Award, Star, LogOut } from 'lucide-react';
+import { Calendar, Award, Star, LogOut, XCircle } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import './MinhaConta.css';
 
@@ -11,6 +11,11 @@ export default function MinhaConta() {
   const [agendamentos, setAgendamentos] = useState([]);
   const [pontos, setPontos] = useState(0);
   const [carregando, setCarregando] = useState(true);
+  
+  // Estados para as regras de fidelidade da loja
+  const [meta, setMeta] = useState(10);
+  const [descricaoPremio, setDescricaoPremio] = useState('Prêmio Grátis');
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -43,6 +48,19 @@ export default function MinhaConta() {
         
         lista.sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm));
         setAgendamentos(lista);
+
+        // Busca as regras da loja do último agendamento para mostrar o prêmio certo
+        if (lista.length > 0) {
+          const ultimoAgendamento = lista[0];
+          const lojaRef = doc(db, "barbearias", ultimoAgendamento.barbeiroId);
+          const lojaSnap = await getDoc(lojaRef);
+          if (lojaSnap.exists()) {
+            const dadosLoja = lojaSnap.data();
+            setMeta(dadosLoja.pontosParaPremio || 10);
+            setDescricaoPremio(dadosLoja.descricaoPremio || 'Prêmio Grátis');
+          }
+        }
+
       } catch (error) {
         console.error("Erro ao buscar dados:", error);
       } finally {
@@ -65,7 +83,6 @@ export default function MinhaConta() {
         avaliadoEm: new Date()
       });
       
-      // Atualiza a lista localmente para não precisar recarregar
       setAgendamentos(prev => prev.map(ag => 
         ag.id === agendamentoId ? { ...ag, avaliacao: nota } : ag
       ));
@@ -77,6 +94,24 @@ export default function MinhaConta() {
     }
   }
 
+  async function cancelarAgendamento(id) {
+    if (!window.confirm("Tem certeza que deseja cancelar este agendamento?")) return;
+
+    try {
+      const agendamentoRef = doc(db, "agendamentos", id);
+      await updateDoc(agendamentoRef, { status: 'cancelado' });
+      
+      setAgendamentos(prev => prev.map(ag => 
+        ag.id === id ? { ...ag, status: 'cancelado' } : ag
+      ));
+      
+      alert("✅ Agendamento cancelado. O horário foi liberado para outros clientes.");
+    } catch (error) {
+      console.error("Erro ao cancelar:", error);
+      alert("Erro ao cancelar o agendamento.");
+    }
+  }
+
   if (carregando) return <p style={{ padding: '50px', textAlign: 'center', color: 'var(--primary)' }}>Carregando...</p>;
   if (!usuario) return (
     <div style={{ textAlign: 'center', marginTop: '100px' }}>
@@ -85,7 +120,6 @@ export default function MinhaConta() {
     </div>
   );
 
-  const meta = 10;
   const pontosRestantes = meta - (pontos % meta);
 
   return (
@@ -111,6 +145,7 @@ export default function MinhaConta() {
             <strong>{pontos}</strong>
             <span>pontos acumulados</span>
           </div>
+          
           <div className="progresso-cortes">
             {[...Array(meta)].map((_, index) => (
               <div 
@@ -121,10 +156,11 @@ export default function MinhaConta() {
               </div>
             ))}
           </div>
+          
           <p className="aviso-pontos">
             {pontos > 0 && pontos % meta === 0 
-              ? "🎉 Você ganhou um prêmio grátis!" 
-              : `Faltam ${pontosRestantes} para ganhar um prêmio grátis!`}
+              ? `🎉 Você ganhou um prêmio: ${descricaoPremio}!` 
+              : `Faltam ${pontosRestantes} pontos para ganhar: ${descricaoPremio}`}
           </p>
         </div>
 
@@ -137,13 +173,13 @@ export default function MinhaConta() {
           ) : (
             <div className="historico-list">
               {agendamentos.map(ag => (
-                <div key={ag.id} className="historico-item">
+                <div key={ag.id} className="historico-item" style={{ opacity: ag.status === 'cancelado' ? 0.5 : 1 }}>
                   <div className="historico-info">
                     <h4>{ag.servico}</h4>
                     <p>{ag.barbeiroNome} • {ag.data} às {ag.horario}</p>
                   </div>
                   
-                  {/* ÁREA DE AVALIAÇÃO */}
+                  {/* ÁREA DE AVALIAÇÃO (Só para concluídos) */}
                   {ag.status === 'concluido' && (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                       {ag.avaliacao ? (
@@ -174,8 +210,18 @@ export default function MinhaConta() {
                     </div>
                   )}
 
-                  <div className={`status-badge ${ag.status === 'concluido' ? 'ativo' : 'pendente'}`}>
-                    {ag.status === 'concluido' ? 'Concluído' : 'Agendado'}
+                  {/* BOTÃO DE CANCELAR (Só para agendados/pendentes) */}
+                  {ag.status !== 'concluido' && ag.status !== 'cancelado' && (
+                    <button 
+                      onClick={() => cancelarAgendamento(ag.id)}
+                      style={{ background: 'none', color: '#ff6b6b', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid rgba(255, 107, 107, 0.3)', padding: '6px 12px', borderRadius: '6px' }}
+                    >
+                      <XCircle size={14} /> Cancelar
+                    </button>
+                  )}
+
+                  <div className={`status-badge ${ag.status === 'concluido' ? 'ativo' : ag.status === 'cancelado' ? 'cancelado' : 'pendente'}`}>
+                    {ag.status === 'concluido' ? 'Concluído' : ag.status === 'cancelado' ? 'Cancelado' : 'Agendado'}
                   </div>
                 </div>
               ))}

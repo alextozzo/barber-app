@@ -44,6 +44,7 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
     fetchServicos();
   }, [barber.id]);
 
+  // --- FUNÇÃO CORRIGIDA PARA BUSCAR HORÁRIOS OCUPADOS ---
   useEffect(() => {
     async function buscarHorariosOcupados() {
       if (!selectedDate || !barber.id) return;
@@ -51,26 +52,37 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
       const dataFormatada = selectedDate.toLocaleDateString('pt-BR');
       
       try {
+        // Busca TODOS os agendamentos do dia (sem filtrar por barbeiro na query)
         const q = query(
           collection(db, "agendamentos"), 
-          where("barbeiroId", "==", barber.id.toString()),
           where("data", "==", dataFormatada)
         );
         
         const querySnapshot = await getDocs(q);
         const ocupados = [];
+        
         querySnapshot.forEach((doc) => {
-          if (doc.data().status !== 'cancelado') {
-            ocupados.push(doc.data().horario);
+          const agendamento = doc.data();
+          
+          // Compara o ID do barbeiro de forma flexível (string ou número)
+          const idBate = 
+            agendamento.barbeiroId == barber.id || 
+            agendamento.barbeiroId == barber.id.toString() ||
+            agendamento.barbeiroNome === barber.name;
+
+          if (idBate && agendamento.status !== 'cancelado') {
+            ocupados.push(agendamento.horario);
           }
         });
+        
         setHorariosOcupados(ocupados);
       } catch (error) {
         console.error("Erro ao buscar horários:", error);
       }
     }
     buscarHorariosOcupados();
-  }, [selectedDate, barber.id]);
+  }, [selectedDate, barber.id, barber.name]);
+  // ---------------------------------------------------
 
   const dates = generateDates();
   const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
@@ -85,10 +97,8 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
     return arr;
   }
 
-  // FUNÇÃO NOVA: Busca o whats do barbeiro e abre o link
   async function enviarWhatsAppBarbeiro(nomeCliente, dataFormatada, hora, servico) {
     try {
-      // Busca o documento do barbeiro na coleção "funcionarios"
       const barbeiroRef = doc(db, "funcionarios", barber.id.toString());
       const barbeiroSnap = await getDoc(barbeiroRef);
 
@@ -97,13 +107,8 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
         const numeroWhats = dadosBarbeiro.whatsapp;
 
         if (numeroWhats) {
-          // Monta a mensagem
           const mensagem = `Confirme sua agenda com *${barber.name}*.\n\n👤 *Cliente:* ${nomeCliente}\n✂️ *Serviço:* ${servico}\n📅 *Data:* ${dataFormatada}\n⏰ *Horário:* ${hora}\n\nOlá, gostaria de confirmar meu agendamento!`;
-
-          // Limpa o número (remove espaços, traços, parênteses)
           const numeroLimpo = numeroWhats.replace(/\D/g, '');
-          
-          // Abre o WhatsApp do cliente com a mensagem pronta para o barbeiro (55 = Brasil)
           window.open(`https://wa.me/55${numeroLimpo}?text=${encodeURIComponent(mensagem)}`, '_blank');
         } else {
           console.warn("Barbeiro não tem WhatsApp cadastrado.");
@@ -139,7 +144,6 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
       const dataFormatada = selectedDate.toLocaleDateString('pt-BR');
       const nomeCliente = auth.currentUser.displayName || "Cliente";
 
-      // 1. Salva no banco de dados
       await addDoc(collection(db, "agendamentos"), {
         clienteId: auth.currentUser.uid,
         clienteNome: nomeCliente,
@@ -155,7 +159,6 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
         criadoEm: new Date()
       });
 
-      // 2. Notificação do navegador (se permitido)
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('🔔 Novo Agendamento!', {
           body: `${nomeCliente} agendou ${selectedService.nome} para ${dataFormatada} às ${selectedTime}.`,
@@ -163,10 +166,8 @@ export default function BookingModal({ barber, onClose, onAskLogin }) {
         });
       }
 
-      // 3. Abre o WhatsApp do barbeiro com a mensagem de confirmação
       await enviarWhatsAppBarbeiro(nomeCliente, dataFormatada, selectedTime, selectedService.nome);
 
-      // 4. Avisa o cliente e fecha
       alert(`✅ Agendamento realizado!\n\nO WhatsApp foi aberto. Por favor, envie a mensagem para o profissional confirmar.`);
       onClose();
       

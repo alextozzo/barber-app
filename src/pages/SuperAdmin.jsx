@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { Store, Mail, Phone, CheckCircle, XCircle, DollarSign, Trash2 } from 'lucide-react';
+import { Store, Mail, Phone, CheckCircle, XCircle, DollarSign, Trash2, Clock } from 'lucide-react';
 import './SuperAdmin.css';
 
 export default function SuperAdmin() {
@@ -22,35 +22,48 @@ export default function SuperAdmin() {
 
   // --- MÉTRICAS DO DASHBOARD ---
   const totalLojas = barbearias.length;
-  const lojasAtivas = barbearias.filter(b => b.statusPagamento === 'ativo').length;
-  const lojasPendentes = barbearias.filter(b => b.statusPagamento !== 'ativo').length;
   
-  // Faturamento estimado (soma dos planos, assumindo Básico se não tiver)
+  // Considera ativo tanto quem você aprovou quanto quem pagou pelo Mercado Pago
+  const lojasAtivas = barbearias.filter(b => b.statusPagamento === 'ativo' || b.statusPagamento === 'aprovado').length;
+  
+  // Pendentes incluem quem não pagou e quem clicou em "Já fiz o Pix"
+  const lojasPendentes = barbearias.filter(b => b.statusPagamento !== 'ativo' && b.statusPagamento !== 'aprovado').length;
+  
   const faturamentoEstimado = barbearias.reduce((acc, b) => {
-    if (b.statusPagamento !== 'ativo') return acc;
+    if (b.statusPagamento !== 'ativo' && b.statusPagamento !== 'aprovado') return acc;
     const precos = { basico: 29.90, pro: 49.90, premium: 79.90 };
-    const plano = b.plano || 'basico'; // <-- Se não tiver plano, assume básico
+    const plano = b.plano || 'basico';
     return acc + (precos[plano] || 0);
   }, 0);
 
   // --- AÇÕES ---
   async function aprovarPagamento(id) {
     try {
-      await updateDoc(doc(db, "barbearias", id), { statusPagamento: 'ativo' });
+      // Calcula data de validade (+30 dias)
+      const dataValidade = new Date();
+      dataValidade.setDate(dataValidade.getDate() + 30);
+
+      await updateDoc(doc(db, "barbearias", id), { 
+        statusPagamento: 'ativo',
+        validadePlano: dataValidade.toISOString()
+      });
+      alert("✅ Loja aprovada! Validade de 30 dias definida.");
     } catch (error) { console.error(error); }
   }
 
   async function bloquearLoja(id) {
-    if (!window.confirm("Bloquear esta loja? O link ficará offline.")) return;
+    if (!window.confirm("Bloquear esta loja? O acesso dela será suspenso.")) return;
     try {
       await updateDoc(doc(db, "barbearias", id), { statusPagamento: 'pendente' });
+      alert("🚫 Loja bloqueada com sucesso.");
     } catch (error) { console.error(error); }
   }
 
   async function removerLoja(id) {
-    if (!window.confirm("ATENÇÃO: Isso apagará a loja permanentemente. Continuar?")) return;
+    if (!window.confirm("ATENÇÃO: Isso apagará a loja permanentemente. Tem certeza absoluta?")) return;
     try {
       await deleteDoc(doc(db, "barbearias", id));
+      alert("🗑️ Loja removida.");
     } catch (error) { console.error(error); }
   }
 
@@ -82,7 +95,7 @@ export default function SuperAdmin() {
         <div className="kpi-card card">
           <div className="kpi-icon" style={{ color: '#EF4444' }}><XCircle size={24} /></div>
           <div className="kpi-info">
-            <span>Pendentes/Bloqueadas</span>
+            <span>Aguardando Aprovação</span>
             <strong>{lojasPendentes}</strong>
           </div>
         </div>
@@ -132,14 +145,21 @@ export default function SuperAdmin() {
                       </span>
                     </td>
                     <td>
-                      <span className={`status-badge ${b.statusPagamento === 'ativo' ? 'ativo' : 'pendente'}`}>
-                        {b.statusPagamento === 'ativo' ? 'Ativo' : 'Pendente'}
-                      </span>
+                      {/* Lógica de Status Visual */}
+                      {(b.statusPagamento === 'ativo' || b.statusPagamento === 'aprovado') ? (
+                        <span className="status-badge ativo">Ativo</span>
+                      ) : b.statusPagamento === 'pendente_aprovacao' ? (
+                        <span className="status-badge pendente" style={{ background: '#f59e0b', color: '#fff' }}>
+                          <Clock size={12} style={{ marginRight: '4px' }} /> Em Análise
+                        </span>
+                      ) : (
+                        <span className="status-badge pendente">Pendente</span>
+                      )}
                     </td>
                     <td>
                       <div className="acoes-cell">
-                        {b.statusPagamento !== 'ativo' ? (
-                          <button className="btn-aprovar" onClick={() => aprovarPagamento(b.id)} title="Aprovar">
+                        {(b.statusPagamento !== 'ativo' && b.statusPagamento !== 'aprovado') ? (
+                          <button className="btn-aprovar" onClick={() => aprovarPagamento(b.id)} title="Aprovar e Ativar por 30 dias">
                             <CheckCircle size={16} />
                           </button>
                         ) : (

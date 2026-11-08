@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { db, auth } from '../firebase';
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { CheckCircle, ShieldCheck, QrCode, ArrowLeft } from 'lucide-react';
+import { CheckCircle, ShieldCheck, QrCode, ArrowLeft, Clock, ExternalLink } from 'lucide-react';
 import './Checkout.css';
 
 export default function Checkout() {
@@ -11,9 +11,15 @@ export default function Checkout() {
   const [loja, setLoja] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [usuario, setUsuario] = useState(undefined);
+  
+  // Estados novos para o Timer
+  const [tempoRestante, setTempoRestante] = useState(30 * 60); 
+  const [pagamentoIniciado, setPagamentoIniciado] = useState(false);
+  
   const navigate = useNavigate();
+  const location = useLocation(); 
 
-  // LINKS DO MERCADO PAGO (já preenchidos)
+  // LINKS DO MERCADO PAGO
   const LINKS_MERCADO_PAGO = {
     basico: 'https://mpago.la/2nmH9UF',
     pro: 'https://mpago.la/182JXdi',
@@ -52,8 +58,65 @@ export default function Checkout() {
     fetchDados();
   }, [usuario]);
 
-  // Função para simular a aprovação do pagamento (enquanto o webhook não chega)
-  async function simularPagamento() {
+  // VERIFICA SE VOLTOU DO MERCADO PAGO COM SUCESSO
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const status = params.get('status');
+
+    if (status === 'sucesso' && usuario) {
+      liberarAcessoAutomatico();
+    }
+  }, [location, usuario]);
+
+  async function liberarAcessoAutomatico() {
+    try {
+      const docRef = doc(db, "barbearias", usuario.uid);
+      
+      // Calcula a data de validade (30 dias a partir de hoje)
+      const dataValidade = new Date();
+      dataValidade.setDate(dataValidade.getDate() + 30);
+
+      await updateDoc(docRef, {
+        plano: plano,
+        statusPagamento: 'aprovado',
+        validadePlano: dataValidade.toISOString() // Salva a data exata
+      });
+
+      alert("🎉 Pagamento confirmado! Seu painel foi liberado por 30 dias.");
+      navigate('/painel');
+    } catch (error) {
+      console.error("Erro ao liberar acesso:", error);
+    }
+  }
+
+  // Lógica do Timer
+  useEffect(() => {
+    let timer;
+    if (pagamentoIniciado && tempoRestante > 0) {
+      timer = setInterval(() => {
+        setTempoRestante((prev) => prev - 1);
+      }, 1000);
+    } else if (tempoRestante === 0) {
+      setPagamentoIniciado(false);
+      alert("⏰ O tempo para pagamento expirou. Gere um novo código.");
+    }
+    return () => clearInterval(timer);
+  }, [pagamentoIniciado, tempoRestante]);
+
+  const formatarTempo = (segundos) => {
+    const min = Math.floor(segundos / 60);
+    const seg = segundos % 60;
+    return `${min.toString().padStart(2, '0')}:${seg.toString().padStart(2, '0')}`;
+  };
+
+  function iniciarPagamento() {
+    setPagamentoIniciado(true);
+    setTempoRestante(30 * 60); 
+    window.open(LINKS_MERCADO_PAGO[plano], '_blank');
+  }
+
+  // Envia para o admin aprovar (Plano B)
+  async function enviarParaAprovacao() {
     if (!usuario) return;
     try {
       const docRef = doc(db, "barbearias", usuario.uid);
@@ -64,17 +127,21 @@ export default function Checkout() {
           nome: "Minha Loja",
           donoId: usuario.uid,
           donoEmail: usuario.email,
-          statusPagamento: 'pendente',
+          plano: plano,
+          statusPagamento: 'pendente_aprovacao',
           criadoEm: new Date()
         });
       } else {
-        await updateDoc(docRef, { statusPagamento: 'pendente' });
+        await updateDoc(docRef, { 
+          statusPagamento: 'pendente_aprovacao',
+          plano: plano 
+        });
       }
 
-      alert("✅ Pagamento enviado para análise!\n\nAssim que for aprovado, sua loja será liberada.");
+      alert("✅ Solicitação enviada!\n\nAguarde a confirmação do administrador.");
       navigate('/painel'); 
     } catch (error) {
-      console.error("Erro ao registrar pagamento:", error);
+      console.error("Erro ao enviar solicitação:", error);
       alert("Erro ao registrar pagamento. Tente novamente.");
     }
   }
@@ -112,25 +179,55 @@ export default function Checkout() {
           </div>
         </div>
 
-        <div className="pagamento-opcoes">
-          <h3>Como deseja pagar?</h3>
-          
-          <a 
-            href={LINKS_MERCADO_PAGO[plano]} 
-            target="_blank" 
-            rel="noreferrer" 
-            className="btn-pagamento mercadopago"
-          >
-            Pagar com Mercado Pago (Pix ou Cartão)
-          </a>
+        {!pagamentoIniciado ? (
+          <div className="pagamento-opcoes">
+            <h3>Como deseja pagar?</h3>
+            <button onClick={iniciarPagamento} className="btn-pagamento mercadopago">
+              <ExternalLink size={20} />
+              Pagar com Mercado Pago (Pix ou Cartão)
+            </button>
+            <p className="aviso-seguranca" style={{ marginTop: '20px', color: 'var(--muted)', fontSize: '13px' }}>
+              Ao clicar, você será redirecionado para o ambiente seguro do Mercado Pago. Após o pagamento, você voltará automaticamente.
+            </p>
+          </div>
+        ) : (
+          <div className="aguardando-pagamento" style={{ textAlign: 'center', padding: '20px 0' }}>
+            <h3 style={{ color: 'var(--primary)', marginBottom: '10px' }}>Aguardando Pagamento</h3>
+            
+            <div className="timer-box" style={{ 
+              background: 'rgba(59, 130, 246, 0.1)', 
+              padding: '20px', 
+              borderRadius: '12px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: '10px',
+              marginBottom: '20px' 
+            }}>
+              <Clock size={24} color="var(--primary)" />
+              <span style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--cream)', fontFamily: 'monospace' }}>
+                {formatarTempo(tempoRestante)}
+              </span>
+            </div>
 
-          <div className="divider">ou</div>
+            <p style={{ color: 'var(--muted)', fontSize: '13px', marginBottom: '20px' }}>
+              O tempo para realizar o pagamento está correndo. <br/>
+              Se você já realizou o Pix, clique no botão abaixo.
+            </p>
 
-          <button onClick={simularPagamento} className="btn-pagamento simular">
-            <QrCode size={20} />
-            Já fiz o Pix (Aguardar Aprovação)
-          </button>
-        </div>
+            <button onClick={enviarParaAprovacao} className="btn-pagamento simular" style={{ background: 'var(--success)', color: 'white' }}>
+              <CheckCircle size={20} />
+              Já fiz o Pagamento (Aguardar Aprovação)
+            </button>
+
+            <button 
+              onClick={() => setPagamentoIniciado(false)} 
+              style={{ background: 'none', border: 'none', color: 'var(--muted)', marginTop: '15px', cursor: 'pointer', textDecoration: 'underline', fontSize: '13px' }}
+            >
+              Cancelar e voltar
+            </button>
+          </div>
+        )}
 
         <p className="aviso-seguranca">
           <CheckCircle size={14} /> Pagamento 100% seguro. Sua loja será liberada após a confirmação.

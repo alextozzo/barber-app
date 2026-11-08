@@ -19,7 +19,6 @@ export default function CriarLoja() {
   const [chavePix, setChavePix] = useState('');
   const [sobre, setSobre] = useState('');
 
-  // Galeria começa com 5 espaços (para o Premium)
   const [galeria, setGaleria] = useState(['', '', '', '', '']); 
   const [comodidades, setComodidades] = useState([]);
 
@@ -29,9 +28,12 @@ export default function CriarLoja() {
   const [almocoFim, setAlmocoFim] = useState('13:00');
   const [corPrincipal, setCorPrincipal] = useState('#3B82F6');
 
-  // NOVOS ESTADOS: Política de Cancelamento
   const [prazoCancelamento, setPrazoCancelamento] = useState(2); 
   const [taxaCancelamento, setTaxaCancelamento] = useState(0);
+
+  // NOVOS ESTADOS: Termos e Marketing
+  const [aceitouTermos, setAceitouTermos] = useState(false);
+  const [aceitaMarketing, setAceitaMarketing] = useState(false);
 
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -82,7 +84,6 @@ export default function CriarLoja() {
           setAlmocoFim(data.almocoFim || '13:00');
           setCorPrincipal(data.corPrincipal || '#3B82F6');
 
-          // Carrega a política de cancelamento salva
           setPrazoCancelamento(data.prazoCancelamento || 2);
           setTaxaCancelamento(data.taxaCancelamento || 0);
         }
@@ -147,6 +148,12 @@ export default function CriarLoja() {
       return;
     }
 
+    // VALIDAÇÃO DOS TERMOS
+    if (!aceitouTermos) {
+      alert('⚠️ Você precisa aceitar os Termos de Uso e a Política de Privacidade para criar sua loja.');
+      return;
+    }
+
     setSalvando(true);
     try {
       const lojasRef = collection(db, "barbearias");
@@ -184,9 +191,12 @@ export default function CriarLoja() {
         donoId: usuario.uid,
         donoEmail: usuario.email,
         criadoEm: new Date(),
-        // SALVANDO OS NOVOS CAMPOS DE CANCELAMENTO
         prazoCancelamento: Number(prazoCancelamento),
-        taxaCancelamento: Number(taxaCancelamento)
+        taxaCancelamento: Number(taxaCancelamento),
+        // SALVANDO OS DADOS DE CONSENTIMENTO
+        aceitouTermos: true,
+        aceitaMarketing: aceitaMarketing,
+        dataAceiteTermos: new Date()
       });
 
       const servicosPadrao = {
@@ -310,7 +320,6 @@ export default function CriarLoja() {
             <div className="input-group" style={{ flex: 1 }}><label><Utensils size={14} /> Fim do Almoço</label><input type="time" value={almocoFim} onChange={e => setAlmocoFim(e.target.value)} required /></div>
           </div>
 
-          {/* NOVO BLOCO: POLÍTICA DE CANCELAMENTO */}
           <div style={{ padding: '20px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '20px' }}>
             <h4 style={{ fontSize: '14px', color: 'var(--primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AlertCircle size={16} /> Política de Cancelamento
@@ -319,25 +328,12 @@ export default function CriarLoja() {
             <div className="input-row" style={{ display: 'flex', gap: '16px', marginBottom: '0' }}>
               <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
                 <label>Prazo Mínimo (Horas)</label>
-                <input 
-                  type="number" 
-                  min="0"
-                  value={prazoCancelamento} 
-                  onChange={e => setPrazoCancelamento(e.target.value)} 
-                  placeholder="Ex: 2"
-                />
+                <input type="number" min="0" value={prazoCancelamento} onChange={e => setPrazoCancelamento(e.target.value)} placeholder="Ex: 2" />
                 <span style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px', display: 'block' }}>Horas de antecedência.</span>
               </div>
               <div className="input-group" style={{ flex: 1, marginBottom: 0 }}>
                 <label>Taxa de Multa (%)</label>
-                <input 
-                  type="number" 
-                  min="0"
-                  max="100"
-                  value={taxaCancelamento} 
-                  onChange={e => setTaxaCancelamento(e.target.value)} 
-                  placeholder="Ex: 30"
-                />
+                <input type="number" min="0" max="100" value={taxaCancelamento} onChange={e => setTaxaCancelamento(e.target.value)} placeholder="Ex: 30" />
                 <span style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px', display: 'block' }}>0 = isento de multa.</span>
               </div>
             </div>
@@ -373,6 +369,33 @@ export default function CriarLoja() {
           <div className="input-group">
             <label><Camera size={14} /> URL da Foto de Perfil (Opcional)</label>
             <input type="url" value={fotoUrl} onChange={e => setFotoUrl(e.target.value)} placeholder="https://..." />
+          </div>
+
+          {/* NOVO BLOCO: TERMOS E MARKETING */}
+          <div style={{ marginTop: '24px', marginBottom: '24px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', marginBottom: '12px' }}>
+              <input 
+                type="checkbox" 
+                checked={aceitouTermos} 
+                onChange={e => setAceitouTermos(e.target.checked)}
+                style={{ marginTop: '4px', width: '18px', height: '18px', accentColor: 'var(--primary)' }}
+              />
+              <span style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: '1.5' }}>
+                Li e aceito os <a href="/termos" target="_blank" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Termos de Uso</a> e a <a href="/termos" target="_blank" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Política de Privacidade</a>.
+              </span>
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+              <input 
+                type="checkbox" 
+                checked={aceitaMarketing} 
+                onChange={e => setAceitaMarketing(e.target.checked)}
+                style={{ marginTop: '4px', width: '18px', height: '18px', accentColor: 'var(--primary)' }}
+              />
+              <span style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: '1.5' }}>
+                Desejo receber novidades, dicas e promoções por e-mail.
+              </span>
+            </label>
           </div>
 
           <button type="submit" className="btn-primary full" disabled={salvando}>

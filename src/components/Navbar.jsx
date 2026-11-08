@@ -2,7 +2,7 @@ import { LogOut, Store, Menu, X, Calendar } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { auth } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Adicionei Link
 import PerfilCliente from './PerfilCliente'; 
 import './Navbar.css';
 
@@ -30,7 +30,6 @@ export default function Navbar({ onLoginClick, onBookClick }) {
     <>
       <nav className="navbar">
         <div className="nav-container">
-          {/* LOGO ATUALIZADA AQUI */}
           <a href="/" className="logo">
             <Calendar size={24} color="var(--primary)" />
             <span>Quero<em>1</em>Horario</span>
@@ -41,9 +40,10 @@ export default function Navbar({ onLoginClick, onBookClick }) {
           </button>
 
           <ul className={`nav-links ${menuOpen ? 'open' : ''}`}>
-            <li><a href="#profissionais" onClick={() => setMenuOpen(false)}>Profissionais</a></li>
-            <li><a href="#servicos" onClick={() => setMenuOpen(false)}>Serviços</a></li>
-            <li><a href="#sobre" onClick={() => setMenuOpen(false)}>Sobre</a></li>
+            {/* Links ajustados para funcionar */}
+            <li><a href="/#planos" onClick={() => setMenuOpen(false)}>Profissionais</a></li>
+            <li><a href="/#planos" onClick={() => setMenuOpen(false)}>Serviços</a></li>
+            <li><Link to="/termos" onClick={() => setMenuOpen(false)}>Sobre</Link></li>
             
             <li>
               <button 

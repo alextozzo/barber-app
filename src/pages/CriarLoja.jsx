@@ -3,10 +3,9 @@ import { db, auth } from '../firebase';
 import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { Store, Link as LinkIcon, Camera, Clock, Utensils, MapPin, AtSign, Phone, DollarSign, Image, AlertCircle, UploadCloud } from 'lucide-react';
+import { Store, Link as LinkIcon, Camera, Clock, Utensils, MapPin, AtSign, Phone, DollarSign, Image, AlertCircle, UploadCloud, CheckCircle, Circle } from 'lucide-react';
 import './CriarLoja.css';
 
-// CHAVE DO IMGBB CONFIGURADA
 const IMGBB_API_KEY = '42f6f47c1a272912cd2c20b31c075868';
 
 export default function CriarLoja() {
@@ -49,6 +48,23 @@ export default function CriarLoja() {
 
   const planoEscolhido = localStorage.getItem('planoEscolhido') || 'basico';
   const limiteFotos = planoEscolhido === 'premium' ? 5 : planoEscolhido === 'pro' ? 3 : 0;
+
+  // --- LÓGICA DA BARRA DE PROGRESSO ---
+  const requisitos = [
+    { label: 'Nome do Estabelecimento', ok: nomeLoja.trim().length > 0 },
+    { label: 'Endereço', ok: endereco.trim().length > 0 },
+    { label: 'WhatsApp', ok: whatsapp.trim().length >= 10 },
+    { label: 'Foto de Perfil', ok: fotoUrl.length > 0 },
+    { label: 'Foto de Capa', ok: fotoCapa.length > 0 },
+    { label: 'Mínimo 2 fotos na Galeria', ok: galeria.filter(f => f).length >= 2 },
+    { label: 'Aceitar Termos de Uso', ok: aceitouTermos || lojaExistente !== null }
+  ];
+
+  const totalRequisitos = requisitos.length;
+  const requisitosOk = requisitos.filter(r => r.ok).length;
+  const progresso = Math.round((requisitosOk / totalRequisitos) * 100);
+  const formularioCompleto = requisitosOk === totalRequisitos;
+  // -------------------------------------
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -106,7 +122,6 @@ export default function CriarLoja() {
     fetchLoja();
   }, [usuario]);
 
-  // --- FUNÇÃO DE UPLOAD PARA O IMGBB ---
   async function uploadImagem(file) {
     if (!file) return '';
     setEnviandoImagem(true);
@@ -133,7 +148,6 @@ export default function CriarLoja() {
       setEnviandoImagem(false);
     }
   }
-  // -------------------------------------
 
   function gerarSlug(texto) {
     const slugFormatado = texto
@@ -180,15 +194,8 @@ export default function CriarLoja() {
 
   async function salvarLoja(e) {
     e.preventDefault();
-    if (!nomeLoja || !slug || !usuario) return;
-
-    if (whatsapp && whatsapp.replace(/\D/g, '').length < 10) {
-      alert('WhatsApp inválido. Digite DDD + número.');
-      return;
-    }
-
-    if (!lojaExistente && !aceitouTermos) {
-      alert('⚠️ Você precisa aceitar os Termos de Uso e a Política de Privacidade para criar sua loja.');
+    if (!formularioCompleto) {
+      alert("⚠️ Preencha todos os requisitos obrigatórios para liberar o botão de salvar.");
       return;
     }
 
@@ -294,6 +301,27 @@ export default function CriarLoja() {
           <Store size={32} color={corPrincipal} />
           <h2>{lojaExistente ? 'Editar Meu Negócio' : 'Meu Negócio'}</h2>
           <p>{lojaExistente ? 'Atualize os dados da sua loja.' : 'Configure os dados da sua loja para gerar seu link exclusivo.'}</p>
+        </div>
+
+        {/* BARRA DE PROGRESSO - AGORA APARECE SEMPRE */}
+        <div style={{ marginBottom: '32px', background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--cream)', fontWeight: '600' }}>Progresso do Cadastro</span>
+            <span style={{ fontSize: '14px', color: progresso === 100 ? 'var(--success)' : 'var(--primary)', fontWeight: 'bold' }}>{progresso}%</span>
+          </div>
+          
+          <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden', marginBottom: '16px' }}>
+            <div style={{ width: `${progresso}%`, height: '100%', background: progresso === 100 ? 'var(--success)' : 'var(--primary)', transition: 'width 0.3s ease' }}></div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            {requisitos.map((req, index) => (
+              <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: req.ok ? 'var(--success)' : 'var(--muted)' }}>
+                {req.ok ? <CheckCircle size={14} /> : <Circle size={14} />}
+                {req.label}
+              </div>
+            ))}
+          </div>
         </div>
 
         <form onSubmit={salvarLoja}>
@@ -506,9 +534,20 @@ export default function CriarLoja() {
             </div>
           )}
 
-          <button type="submit" className="btn-primary full" disabled={salvando || enviandoImagem}>
+          <button 
+            type="submit" 
+            className="btn-primary full" 
+            disabled={salvando || enviandoImagem || (!lojaExistente && !formularioCompleto)}
+            style={{ opacity: (!lojaExistente && !formularioCompleto) ? 0.5 : 1, cursor: (!lojaExistente && !formularioCompleto) ? 'not-allowed' : 'pointer' }}
+          >
             {salvando ? 'Salvando...' : (lojaExistente ? 'Salvar Alterações' : 'Salvar Loja e Gerar Link')}
           </button>
+          
+          {!lojaExistente && !formularioCompleto && (
+            <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--muted)', marginTop: '12px' }}>
+              Preencha todos os requisitos acima para liberar o botão.
+            </p>
+          )}
         </form>
       </div>
     </div>

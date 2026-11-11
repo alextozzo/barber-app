@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { Calendar, Award, Star, LogOut, XCircle } from 'lucide-react';
+import { Calendar, Star, LogOut, XCircle, Bell, Crown } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import './MinhaConta.css';
 
@@ -11,10 +11,10 @@ export default function MinhaConta() {
   const [agendamentos, setAgendamentos] = useState([]);
   const [pontos, setPontos] = useState(0);
   const [carregando, setCarregando] = useState(true);
-  
-  // Estados para as regras de fidelidade da loja
   const [meta, setMeta] = useState(10);
   const [descricaoPremio, setDescricaoPremio] = useState('Prêmio Grátis');
+  const [notificacoesAtivas, setNotificacoesAtivas] = useState(false);
+  const [nomeLoja, setNomeLoja] = useState('Quero1Horario');
 
   const navigate = useNavigate();
 
@@ -23,6 +23,12 @@ export default function MinhaConta() {
       setUsuario(user);
     });
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      setNotificacoesAtivas(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -49,7 +55,6 @@ export default function MinhaConta() {
         lista.sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm));
         setAgendamentos(lista);
 
-        // Busca as regras da loja do último agendamento para mostrar o prêmio certo
         if (lista.length > 0) {
           const ultimoAgendamento = lista[0];
           const lojaRef = doc(db, "barbearias", ultimoAgendamento.barbeiroId);
@@ -58,6 +63,7 @@ export default function MinhaConta() {
             const dadosLoja = lojaSnap.data();
             setMeta(dadosLoja.pontosParaPremio || 10);
             setDescricaoPremio(dadosLoja.descricaoPremio || 'Prêmio Grátis');
+            setNomeLoja(dadosLoja.nome || 'Quero1Horario');
           }
         }
 
@@ -70,6 +76,21 @@ export default function MinhaConta() {
     fetchDados();
   }, [usuario]);
 
+  async function ativarNotificacoes() {
+    if (!('Notification' in window)) {
+      alert("Seu navegador não suporta notificações.");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      setNotificacoesAtivas(true);
+      new Notification('🔔 Lembretes Ativados!', {
+        body: 'Você será avisado 2 horas antes do seu agendamento.',
+      });
+    }
+  }
+
   async function handleLogout() {
     await auth.signOut();
     navigate('/');
@@ -78,37 +99,24 @@ export default function MinhaConta() {
   async function avaliarServico(agendamentoId, nota) {
     try {
       const agendamentoRef = doc(db, "agendamentos", agendamentoId);
-      await updateDoc(agendamentoRef, { 
-        avaliacao: nota,
-        avaliadoEm: new Date()
-      });
-      
-      setAgendamentos(prev => prev.map(ag => 
-        ag.id === agendamentoId ? { ...ag, avaliacao: nota } : ag
-      ));
-      
+      await updateDoc(agendamentoRef, { avaliacao: nota, avaliadoEm: new Date() });
+      setAgendamentos(prev => prev.map(ag => ag.id === agendamentoId ? { ...ag, avaliacao: nota } : ag));
       alert(`⭐ Obrigado! Você avaliou com ${nota} estrelas.`);
     } catch (error) {
       console.error("Erro ao avaliar:", error);
-      alert("Erro ao enviar avaliação.");
     }
   }
 
-  async function cancelarAgendamento(id) {
+  async function cancelarAgendamento(ag) {
     if (!window.confirm("Tem certeza que deseja cancelar este agendamento?")) return;
 
     try {
-      const agendamentoRef = doc(db, "agendamentos", id);
+      const agendamentoRef = doc(db, "agendamentos", ag.id);
       await updateDoc(agendamentoRef, { status: 'cancelado' });
-      
-      setAgendamentos(prev => prev.map(ag => 
-        ag.id === id ? { ...ag, status: 'cancelado' } : ag
-      ));
-      
-      alert("✅ Agendamento cancelado. O horário foi liberado para outros clientes.");
+      setAgendamentos(prev => prev.map(a => a.id === ag.id ? { ...a, status: 'cancelado' } : a));
+      alert("✅ Agendamento cancelado. O horário foi liberado.");
     } catch (error) {
       console.error("Erro ao cancelar:", error);
-      alert("Erro ao cancelar o agendamento.");
     }
   }
 
@@ -137,31 +145,44 @@ export default function MinhaConta() {
         </button>
       </header>
 
+      {!notificacoesAtivas && (
+        <div className="banner-notificacao">
+          <div className="banner-notif-content">
+            <Bell size={24} color="var(--primary)" />
+            <div>
+              <h4>Ative os lembretes</h4>
+              <p>Seja avisado 2 horas antes do seu agendamento.</p>
+            </div>
+          </div>
+          <button className="btn-primary" onClick={ativarNotificacoes} style={{ padding: '8px 16px', fontSize: '14px' }}>Ativar</button>
+        </div>
+      )}
+
       <div className="conta-grid">
-        {/* CARTÃO FIDELIDADE */}
-        <div className="fidelidade-card card">
-          <h3><Award size={20} color="var(--primary)" /> Meu Cartão Fidelidade</h3>
-          <div className="pontos-display">
-            <strong>{pontos}</strong>
-            <span>pontos acumulados</span>
+        {/* CARTÃO BLACK PREMIUM */}
+        <div className="cartao-black">
+          <div className="cartao-header">
+            <Crown size={20} color="#D4AF37" />
+            <span className="cartao-loja">{nomeLoja}</span>
           </div>
           
-          <div className="progresso-cortes">
+          <div className="cartao-pontos">
+            <strong>{pontos}</strong>
+            <span>PONTOS ACUMULADOS</span>
+          </div>
+          
+          <div className="cartao-progresso">
             {[...Array(meta)].map((_, index) => (
-              <div 
-                key={index} 
-                className={`corte-slot ${index < (pontos % meta) ? 'preenchido' : ''}`}
-              >
-                <Star size={16} />
+              <div key={index} className={`cartao-slot ${index < (pontos % meta) ? 'preenchido' : ''}`}>
+                <Star size={12} />
               </div>
             ))}
           </div>
           
-          <p className="aviso-pontos">
-            {pontos > 0 && pontos % meta === 0 
-              ? `🎉 Você ganhou um prêmio: ${descricaoPremio}!` 
-              : `Faltam ${pontosRestantes} pontos para ganhar: ${descricaoPremio}`}
-          </p>
+          <div className="cartao-footer">
+            <p>Faltam <strong>{pontosRestantes}</strong> pontos para ganhar:</p>
+            <h4>{descricaoPremio}</h4>
+          </div>
         </div>
 
         {/* HISTÓRICO DE AGENDAMENTOS */}
@@ -179,29 +200,18 @@ export default function MinhaConta() {
                     <p>{ag.barbeiroNome} • {ag.data} às {ag.horario}</p>
                   </div>
                   
-                  {/* ÁREA DE AVALIAÇÃO (Só para concluídos) */}
                   {ag.status === 'concluido' && (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                       {ag.avaliacao ? (
                         <div style={{ display: 'flex', gap: '2px' }}>
                           {[1, 2, 3, 4, 5].map(estrela => (
-                            <Star 
-                              key={estrela} 
-                              size={16} 
-                              fill={estrela <= ag.avaliacao ? "var(--primary)" : "none"} 
-                              color="var(--primary)" 
-                            />
+                            <Star key={estrela} size={16} fill={estrela <= ag.avaliacao ? "var(--primary)" : "none"} color="var(--primary)" />
                           ))}
                         </div>
                       ) : (
                         <div style={{ display: 'flex', gap: '4px' }}>
                           {[1, 2, 3, 4, 5].map(estrela => (
-                            <button 
-                              key={estrela} 
-                              onClick={() => avaliarServico(ag.id, estrela)}
-                              style={{ background: 'none', padding: 0, cursor: 'pointer' }}
-                              title={`Avaliar com ${estrela} estrelas`}
-                            >
+                            <button key={estrela} onClick={() => avaliarServico(ag.id, estrela)} style={{ background: 'none', padding: 0, cursor: 'pointer' }}>
                               <Star size={18} color="var(--border)" />
                             </button>
                           ))}
@@ -210,10 +220,9 @@ export default function MinhaConta() {
                     </div>
                   )}
 
-                  {/* BOTÃO DE CANCELAR (Só para agendados/pendentes) */}
                   {ag.status !== 'concluido' && ag.status !== 'cancelado' && (
                     <button 
-                      onClick={() => cancelarAgendamento(ag.id)}
+                      onClick={() => cancelarAgendamento(ag)}
                       style={{ background: 'none', color: '#ff6b6b', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid rgba(255, 107, 107, 0.3)', padding: '6px 12px', borderRadius: '6px' }}
                     >
                       <XCircle size={14} /> Cancelar

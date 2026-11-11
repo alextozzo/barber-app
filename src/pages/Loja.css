@@ -1,36 +1,10 @@
-.navbar-loja {
-  background: var(--bg-secondary);
-  padding: 16px 0;
-  border-bottom: 1px solid var(--border);
-}
+.navbar-loja { background: var(--bg-secondary); padding: 16px 0; border-bottom: 1px solid var(--border); }
+.navbar-loja .nav-container { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 24px; }
+.navbar-loja .logo { display: flex; align-items: center; gap: 8px; color: var(--muted); text-decoration: none; font-size: 12px; letter-spacing: 2px; font-weight: 600; }
 
-.navbar-loja .nav-container {
-  max-width: 1100px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 24px;
-}
+.loja-main { max-width: 1100px; margin: 0 auto; padding: 0 24px 60px 24px; }
 
-.navbar-loja .logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--muted);
-  text-decoration: none;
-  font-size: 12px;
-  letter-spacing: 2px;
-  font-weight: 600;
-}
-
-.loja-main {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 24px 60px 24px;
-}
-
-/* HEADER DA LOJA (BANNER + AVATAR) */
+/* HEADER DA LOJA */
 .loja-header {
   position: relative;
   margin-bottom: 40px;
@@ -38,14 +12,32 @@
   overflow: hidden;
   background: var(--bg-card);
   border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
 }
 
+/* BANNER GRANDE */
 .loja-banner-bg {
-  height: 180px;
+  height: 300px;
+  width: 100%;
+  background-color: var(--primary);
   background-size: cover;
   background-position: center;
-  background-color: var(--primary); /* fallback */
-  opacity: 0.6;
+  position: relative;
+  z-index: 0;
+}
+
+/* FILTRO ESCURO APENAS QUANDO TIVER FOTO DE CAPA */
+.loja-banner-bg.com-foto::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.7));
+  z-index: 1;
+  pointer-events: none;
 }
 
 .loja-header-content {
@@ -53,32 +45,29 @@
   align-items: flex-end;
   gap: 24px;
   padding: 0 32px 24px 32px;
-  margin-top: -60px; /* Joga o avatar para cima do banner */
+  margin-top: -80px;
+  position: relative;
+  z-index: 2;
 }
 
 .loja-avatar {
-  width: 140px;
-  height: 140px;
+  width: 160px;
+  height: 160px;
   border-radius: 50%;
-  border: 5px solid var(--bg-card);
+  border: 6px solid var(--bg-card);
   overflow: hidden;
   background: var(--bg-secondary);
   flex-shrink: 0;
   box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
 
-.loja-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
+.loja-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .loja-info { flex: 1; padding-bottom: 8px; }
-.loja-info h1 { font-size: 32px; color: var(--cream); margin-bottom: 6px; }
+.loja-info h1 { font-size: 36px; color: var(--cream); margin-bottom: 6px; }
 .loja-info .rating { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--primary); }
 .loja-info p { color: var(--muted); font-size: 14px; }
 
-/* GALERIA DE FOTOS (MOSAICO DESKTOP) */
+/* GALERIA EM MOSAICO */
 .loja-galeria {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;
@@ -99,184 +88,57 @@
   cursor: pointer;
 }
 
-.galeria-img:hover { 
-  transform: scale(1.02); 
-  filter: brightness(1.1);
-}
+.galeria-img:hover { transform: scale(1.02); filter: brightness(1.1); }
+.galeria-img:first-child { grid-row: span 2; }
 
-.galeria-img:first-child {
-  grid-row: span 2;
-}
+.loja-sobre { padding: 32px; margin-bottom: 32px; }
+.loja-sobre h3 { color: var(--primary); font-size: 20px; margin-bottom: 16px; }
+.loja-sobre p { color: var(--cream); font-size: 15px; line-height: 1.7; }
 
-/* SEÇÃO SOBRE */
-.loja-sobre {
-  padding: 32px;
-  margin-bottom: 32px;
-}
-.loja-sobre h3 {
-  color: var(--primary);
-  font-size: 20px;
-  margin-bottom: 16px;
-}
-.loja-sobre p {
-  color: var(--cream);
-  font-size: 15px;
-  line-height: 1.7;
-}
-
-/* COMO AGENDAR */
 .loja-como-agendar { padding: 32px; margin-bottom: 32px; }
 .loja-como-agendar h3 { color: var(--primary); font-size: 20px; margin-bottom: 24px; }
 .passos-agendar { display: flex; flex-direction: column; gap: 20px; }
 .passo-item { display: flex; gap: 16px; align-items: flex-start; }
-.passo-item .passo-numero {
-  width: 36px;
-  height: 36px;
-  background: var(--primary);
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  flex-shrink: 0;
-}
+.passo-item .passo-numero { width: 36px; height: 36px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
 .passo-item h4 { font-size: 16px; color: var(--cream); margin-bottom: 4px; }
 .passo-item p { font-size: 14px; color: var(--muted); }
 
-/* COMODIDADES */
 .loja-comodidades { padding: 24px; margin-bottom: 32px; }
 .loja-comodidades h3 { color: var(--primary); font-size: 18px; margin-bottom: 20px; }
 .comodidades-grid { display: flex; gap: 32px; flex-wrap: wrap; }
 .comodidade-item { display: flex; align-items: center; gap: 8px; color: var(--cream); font-size: 14px; }
 
-/* ABAS */
-.loja-abas {
-  display: flex;
-  gap: 24px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 32px;
-}
-.aba-btn {
-  background: none;
-  color: var(--muted);
-  padding: 12px 0;
-  font-size: 16px;
-  font-weight: 600;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-.aba-btn.active {
-  color: var(--primary);
-  border-bottom-color: var(--primary);
-}
-
+.loja-abas { display: flex; gap: 24px; border-bottom: 1px solid var(--border); margin-bottom: 32px; }
+.aba-btn { background: none; color: var(--muted); padding: 12px 0; font-size: 16px; font-weight: 600; border-bottom: 2px solid transparent; cursor: pointer; transition: color 0.2s; }
+.aba-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
 .loja-conteudo { margin-bottom: 60px; }
 
-/* INFORMAÇÕES DA LOJA */
-.loja-info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-  margin-bottom: 32px;
-}
-
-.info-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-}
-
-.info-icon {
-  width: 44px;
-  height: 44px;
-  background: rgba(59, 130, 246, 0.1);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--primary);
-  flex-shrink: 0;
-}
-
+.loja-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
+.info-card { display: flex; align-items: center; gap: 16px; padding: 20px; }
+.info-icon { width: 44px; height: 44px; background: rgba(59, 130, 246, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0; }
 .info-card h4 { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
 .info-card p, .info-card a { color: var(--cream); font-size: 14px; text-decoration: none; }
 
-/* HORÁRIO E PAGAMENTO */
-.loja-detalhes-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 40px;
-}
-
+.loja-detalhes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px; }
 .detalhes-card { padding: 24px; }
-.detalhes-card h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--primary);
-  font-size: 16px;
-  margin-bottom: 20px;
-}
-
-.horario-linha {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  font-size: 14px;
-}
+.detalhes-card h3 { display: flex; align-items: center; gap: 8px; color: var(--primary); font-size: 16px; margin-bottom: 20px; }
+.horario-linha { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
 .horario-linha span { color: var(--muted); }
 .horario-linha strong { color: var(--cream); }
-
 .pagamento-tags { display: flex; flex-wrap: wrap; gap: 8px; }
-.pagamento-tag {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--primary);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-}
+.pagamento-tag { background: rgba(59, 130, 246, 0.1); color: var(--primary); border: 1px solid rgba(59, 130, 246, 0.3); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 
-/* Banner de Marketing */
-.banner-marketing {
-  margin-top: 60px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 32px;
-  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.05) 100%);
-  border: 1px dashed var(--primary);
-  border-radius: 16px;
-}
-
+.banner-marketing { margin-top: 60px; display: flex; justify-content: space-between; align-items: center; padding: 32px; background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59, 130, 246, 0.05) 100%); border: 1px dashed var(--primary); border-radius: 16px; }
 .banner-content h3 { font-size: 20px; color: var(--primary); margin-bottom: 8px; }
 .banner-content p { color: var(--muted); font-size: 14px; max-width: 500px; }
 
 /* RESPONSIVO (CELULAR) */
 @media (max-width: 768px) {
-  .loja-header-content {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    margin-top: -70px;
-    padding: 0 16px 24px 16px;
-  }
-
-  .loja-avatar {
-    width: 120px;
-    height: 120px;
-  }
-
+  .loja-header-content { flex-direction: column; align-items: center; text-align: center; margin-top: -70px; padding: 0 16px 24px 16px; }
+  .loja-avatar { width: 120px; height: 120px; }
   .loja-info h1 { font-size: 24px; }
   .loja-info .rating { justify-content: center; }
-
-  /* GALERIA VIRA CARROSSEL NO CELULAR */
+  
   .loja-galeria {
     display: flex;
     overflow-x: auto;
@@ -287,19 +149,9 @@
     border-radius: 0;
     -webkit-overflow-scrolling: touch;
   }
+  .galeria-img { flex: 0 0 85%; scroll-snap-align: start; height: 100%; border-radius: 12px; }
+  .galeria-img:first-child { grid-row: auto; }
 
-  .galeria-img {
-    flex: 0 0 85%;
-    scroll-snap-align: start;
-    height: 100%;
-    border-radius: 12px;
-  }
-
-  .galeria-img:first-child {
-    grid-row: auto;
-  }
-
-  /* Ajustes de layout */
   .loja-detalhes-grid { grid-template-columns: 1fr; }
   .banner-marketing { flex-direction: column; text-align: center; gap: 20px; }
   .loja-abas { gap: 16px; overflow-x: auto; }

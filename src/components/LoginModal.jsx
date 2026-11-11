@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { useState, useEffect } from 'react'; // Adicionei o useEffect aqui
+import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase'; 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -19,27 +19,22 @@ export default function LoginModal({ onClose, initialMode = 'login' }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // --- NOVO BLOCO DE CÓDIGO ---
-  // Se o usuário estiver na página de uma loja (ex: /barbearia-do-eder), limpa a intenção de ser profissional.
-  // Isso evita que clientes sejam redirecionados para criar loja por engano.
+  // Limpa a intenção se o usuário estiver na página de uma loja
   useEffect(() => {
     const caminhosDeProfissional = ['/', '/planos', '/criar-loja'];
     if (!caminhosDeProfissional.includes(location.pathname)) {
       localStorage.removeItem('intencao');
     }
   }, [location.pathname]);
-  // ----------------------------
 
   function handleTelefone(e) {
     let value = e.target.value.replace(/\D/g, '');
     if (value.length > 11) value = value.slice(0, 11);
-    
     if (value.length <= 10) {
       value = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
     } else {
       value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
     }
-    
     setTelefone(value);
   }
 
@@ -54,7 +49,7 @@ export default function LoginModal({ onClose, initialMode = 'login' }) {
     setCarregando(true);
 
     if (mode === 'register' && !validarTelefone(telefone)) {
-      setErro('Telefone inválido. Digite DDD + número (ex: 11999999999).');
+      setErro('Telefone inválido. Digite DDD + número.');
       setCarregando(false);
       return;
     }
@@ -68,6 +63,7 @@ export default function LoginModal({ onClose, initialMode = 'login' }) {
     try {
       let userCredential;
       
+      // 1. FAZ O LOGIN OU CADASTRO
       if (mode === 'login') {
         userCredential = await signInWithEmailAndPassword(auth, email, password);
       } else {
@@ -84,38 +80,35 @@ export default function LoginModal({ onClose, initialMode = 'login' }) {
       
       localStorage.setItem('logado', 'true');
 
-      const intencao = localStorage.getItem('intencao');
-      
-      // --- LÓGICA DE REDIRECIONAMENTO ---
+      // 2. VERIFICA SE É PROFISSIONAL OU CLIENTE
       const lojaRef = doc(db, "barbearias", userCredential.user.uid);
       const lojaSnap = await getDoc(lojaRef);
+      const ehProfissional = lojaSnap.exists();
 
-      if (lojaSnap.exists()) {
-        // Usuário já tem loja (é profissional). Vai para painel ou checkout.
+      // 3. FECHA O MODAL
+      onClose();
+
+      // 4. REDIRECIONA (usando window.location para garantir que a página recarregue)
+      if (ehProfissional) {
         const dadosLoja = lojaSnap.data();
-        localStorage.removeItem('intencao');
-        onClose();
-        
-        setTimeout(() => {
-          if (dadosLoja.statusPagamento === 'ativo' || dadosLoja.statusPagamento === 'aprovado') {
-            navigate('/painel');
+        if (dadosLoja.statusPagamento === 'ativo' || dadosLoja.statusPagamento === 'aprovado') {
+          if (dadosLoja.validadePlano && new Date(dadosLoja.validadePlano) < new Date()) {
+            alert("⚠️ Sua assinatura expirou! Renove para acessar o painel.");
+            window.location.href = '/planos';
           } else {
-            navigate('/checkout');
+            window.location.href = '/painel'; // Vai para o painel
           }
-        }, 500);
-
-      } else if (intencao === 'profissional') {
-        // Profissional novo (não tem loja). Vai para criar loja.
-        localStorage.removeItem('intencao');
-        onClose();
-        setTimeout(() => {
-          navigate('/criar-loja');
-        }, 500);
-
+        } else {
+          window.location.href = '/checkout'; // Vai para o pagamento
+        }
       } else {
-        // CLIENTE: Apenas fecha o modal. Se estava na página da loja, continua lá.
-        onClose();
-        // O cliente permanece na página atual (ex: /slug-da-loja) e pode clicar em Agendar de novo.
+        // É CLIENTE
+        if (location.pathname === '/') {
+          window.location.href = '/minha-conta'; // Se estava na home, vai para a conta
+        } else {
+          // Se estava na página de uma loja, apenas recarrega para liberar o botão de agendar
+          window.location.reload(); 
+        }
       }
 
     } catch (error) {

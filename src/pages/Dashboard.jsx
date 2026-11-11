@@ -59,7 +59,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return; 
-    // Busca todos os agendamentos da loja
     const q = query(collection(db, "agendamentos"), orderBy("criadoEm", "desc"));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -68,9 +67,6 @@ export default function Dashboard() {
         lista.push({ id: doc.id, ...doc.data() });
       });
       
-      // Filtra apenas os agendamentos desta loja (segurança)
-      // Nota: Se o seu sistema não tiver lojaId nos agendamentos, ele vai mostrar todos. 
-      // Mas como o sistema é SaaS, o ideal é ter lojaId. Vou manter o padrão que você tinha.
       setAgendamentos(lista);
       
       const proximo = lista.find(ag => ag.status !== 'concluido');
@@ -96,7 +92,6 @@ export default function Dashboard() {
     }
   }
 
-  // Função para abrir o WhatsApp do Cliente
   function enviarWhatsAppCliente(telefone, nomeCliente) {
     if (!telefone) {
       alert("Este cliente não tem telefone cadastrado.");
@@ -107,7 +102,6 @@ export default function Dashboard() {
     window.open(`https://wa.me/55${numeroLimpo}?text=${encodeURIComponent(mensagem)}`, '_blank');
   }
 
-  // --- CÁLCULOS DE FATURAMENTO (MÊS ATUAL) ---
   const hoje = new Date();
   const mesAtual = hoje.getMonth();
   const anoAtual = hoje.getFullYear();
@@ -126,7 +120,6 @@ export default function Dashboard() {
     .filter(a => a.status === 'concluido')
     .reduce((acc, a) => acc + a.preco, 0);
 
-  // Histórico de 6 meses
   const historicoMeses = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date();
@@ -182,7 +175,6 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* CARDS DE FATURAMENTO */}
       <div className="faturamento-grid">
         <div className="faturamento-card card">
           <div className="faturamento-icon"><DollarSign size={24} /></div>
@@ -200,7 +192,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* GRÁFICO DE HISTÓRICO (SÓ PRO E PREMIUM) */}
       {plano === 'basico' ? (
         <div className="bloqueio-pro card">
           <Lock size={32} color="var(--primary)" />
@@ -235,7 +226,6 @@ export default function Dashboard() {
           <div className="proximo-body">
             <div>
               <h2>{proximoCliente.clienteNome}</h2>
-              {/* AQUI MOSTRAMOS O BARBEIRO E O TELEFONE */}
               <p style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
                 <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>👨‍🦱 {proximoCliente.barbeiroNome || 'Barbeiro'}</span>
                 <span>•</span>
@@ -277,14 +267,12 @@ export default function Dashboard() {
               <div className="detalhes">
                 <h4>{ag.clienteNome}</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-                  {/* NOME DO BARBEIRO AQUI */}
                   <span style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: '600' }}>
                     Barbeiro: {ag.barbeiroNome || 'Não informado'}
                   </span>
                   <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
                     {ag.servico} • {ag.data}
                   </span>
-                  {/* TELEFONE E WHATSAPP AQUI */}
                   {ag.clienteTelefone && (
                     <span style={{ fontSize: '12px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                       <Phone size={12} /> {ag.clienteTelefone}
@@ -456,7 +444,6 @@ export default function Dashboard() {
         .agenda-item .detalhes p { font-size: 13px; color: var(--muted); }
         .agenda-item .valor { font-weight: 600; color: var(--cream); margin-right: 20px; }
 
-        /* ESTILOS NOVOS PARA O WHATSAPP */
         .btn-whatsapp-small {
           background: #25D366;
           color: white;
@@ -488,12 +475,69 @@ export default function Dashboard() {
         }
         .btn-whatsapp-icon:hover { background: rgba(37, 211, 102, 0.4); }
 
+        /* ========== RESPONSIVO (CELULAR) ========== */
         @media (max-width: 768px) {
-          .faturamento-grid { grid-template-columns: 1fr; }
-          .banner-notificacao { flex-direction: column; align-items: flex-start; gap: 12px; }
-          .proximo-body { flex-direction: column; align-items: flex-start; gap: 16px; }
-          .agenda-item { flex-direction: column; align-items: flex-start; gap: 12px; }
-          .agenda-item .hora { width: auto; }
+          .dashboard-wrapper { padding: 20px 16px; }
+
+          .faturamento-grid { 
+            grid-template-columns: 1fr; 
+          }
+
+          .faturamento-card strong {
+            font-size: 20px; 
+          }
+
+          .banner-notificacao { 
+            flex-direction: column; 
+            align-items: flex-start; 
+            gap: 12px; 
+          }
+
+          .proximo-body { 
+            flex-direction: column; 
+            align-items: flex-start; 
+            gap: 16px; 
+            width: 100%;
+          }
+
+          .proximo-body button {
+            width: 100%; 
+          }
+
+          .agenda-item { 
+            flex-direction: column; 
+            align-items: flex-start; 
+            gap: 12px; 
+            padding: 16px;
+          }
+
+          .agenda-item .hora { 
+            width: auto; 
+            font-size: 20px;
+          }
+
+          .agenda-item .valor { 
+            margin-right: 0; 
+            font-size: 16px;
+          }
+
+          .agenda-item .btn-small {
+            width: 100%; 
+            margin-top: 4px;
+          }
+
+          .barra-valor {
+            display: none; 
+          }
+
+          .historico-grafico {
+            padding: 20px 16px;
+          }
+
+          .grafico-barras {
+            height: 150px; 
+            gap: 6px; 
+          }
         }
       `}</style>
     </div>

@@ -1,8 +1,9 @@
 import { LogOut, Store, Menu, X, Calendar } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase'; // Importei o db
+import { doc, getDoc } from 'firebase/firestore'; // Importei getDoc
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { useNavigate, Link } from 'react-router-dom'; // Adicionei Link
+import { useNavigate, Link } from 'react-router-dom';
 import PerfilCliente from './PerfilCliente'; 
 import './Navbar.css';
 
@@ -26,6 +27,28 @@ export default function Navbar({ onLoginClick, onBookClick }) {
     setMenuOpen(false);
   }
 
+  // NOVA FUNÇÃO: Verifica se é profissional para redirecionar
+  async function irParaConta() {
+    if (!user) return;
+    
+    try {
+      const lojaRef = doc(db, "barbearias", user.uid);
+      const lojaSnap = await getDoc(lojaRef);
+      
+      if (lojaSnap.exists()) {
+        // É profissional, vai para o painel
+        navigate('/painel');
+      } else {
+        // É cliente, vai para minha conta
+        navigate('/minha-conta');
+      }
+    } catch (error) {
+      console.error(error);
+      navigate('/minha-conta'); // Fallback
+    }
+    setMenuOpen(false);
+  }
+
   return (
     <>
       <nav className="navbar">
@@ -40,9 +63,8 @@ export default function Navbar({ onLoginClick, onBookClick }) {
           </button>
 
           <ul className={`nav-links ${menuOpen ? 'open' : ''}`}>
-            {/* Links ajustados para funcionar */}
-            <li><a href="/#planos" onClick={() => setMenuOpen(false)}>Profissionais</a></li>
-            <li><a href="/#planos" onClick={() => setMenuOpen(false)}>Serviços</a></li>
+            <li><a href="/#profissionais" onClick={() => setMenuOpen(false)}>Profissionais</a></li>
+            <li><a href="/#servicos" onClick={() => setMenuOpen(false)}>Serviços</a></li>
             <li><Link to="/termos" onClick={() => setMenuOpen(false)}>Sobre</Link></li>
             
             <li>
@@ -61,10 +83,7 @@ export default function Navbar({ onLoginClick, onBookClick }) {
             {user ? (
               <li style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <button 
-                  onClick={() => { 
-                    navigate('/minha-conta'); 
-                    setMenuOpen(false); 
-                  }}
+                  onClick={irParaConta} // CHAMANDO A NOVA FUNÇÃO AQUI
                   style={{ background: 'none', color: 'var(--cream)', fontWeight: '600', fontSize: '14px' }}
                 >
                   Olá, {user.displayName ? user.displayName.split(' ')[0] : 'Cliente'}

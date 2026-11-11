@@ -3,13 +3,17 @@ import { db, auth } from '../firebase';
 import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { Store, Link as LinkIcon, Camera, Clock, Utensils, MapPin, AtSign, Phone, DollarSign, Image, AlertCircle } from 'lucide-react';
+import { Store, Link as LinkIcon, Camera, Clock, Utensils, MapPin, AtSign, Phone, DollarSign, Image, AlertCircle, UploadCloud } from 'lucide-react';
 import './CriarLoja.css';
+
+// CHAVE DO IMGBB CONFIGURADA
+const IMGBB_API_KEY = '42f6f47c1a272912cd2c20b31c075868';
 
 export default function CriarLoja() {
   const [nomeLoja, setNomeLoja] = useState('');
   const [slug, setSlug] = useState('');
   const [fotoUrl, setFotoUrl] = useState('');
+  const [fotoCapa, setFotoCapa] = useState('');
   const [nicho, setNicho] = useState('barbearia');
   
   const [endereco, setEndereco] = useState('');
@@ -31,13 +35,16 @@ export default function CriarLoja() {
   const [prazoCancelamento, setPrazoCancelamento] = useState(2); 
   const [taxaCancelamento, setTaxaCancelamento] = useState(0);
 
-  // NOVOS ESTADOS: Termos e Marketing
   const [aceitouTermos, setAceitouTermos] = useState(false);
   const [aceitaMarketing, setAceitaMarketing] = useState(false);
 
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [enviandoImagem, setEnviandoImagem] = useState(false);
   const [usuario, setUsuario] = useState(undefined); 
+  
+  const [lojaExistente, setLojaExistente] = useState(null);
+
   const navigate = useNavigate();
 
   const planoEscolhido = localStorage.getItem('planoEscolhido') || 'basico';
@@ -62,9 +69,12 @@ export default function CriarLoja() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
+          setLojaExistente(data);
+          
           setNomeLoja(data.nome || '');
           setSlug(data.slug || '');
           setFotoUrl(data.fotoUrl || '');
+          setFotoCapa(data.fotoCapa || '');
           setNicho(data.nicho || 'barbearia');
           setEndereco(data.endereco || '');
           setInstagram(data.instagram || '');
@@ -95,6 +105,35 @@ export default function CriarLoja() {
     }
     fetchLoja();
   }, [usuario]);
+
+  // --- FUNÇÃO DE UPLOAD PARA O IMGBB ---
+  async function uploadImagem(file) {
+    if (!file) return '';
+    setEnviandoImagem(true);
+    
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    try {
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      if (data.success) {
+        return data.data.url;
+      }
+      alert("Erro ao fazer upload da imagem. Tente novamente.");
+      return '';
+    } catch (error) {
+      console.error("Erro no upload:", error);
+      alert("Erro de conexão ao enviar a imagem.");
+      return '';
+    } finally {
+      setEnviandoImagem(false);
+    }
+  }
+  // -------------------------------------
 
   function gerarSlug(texto) {
     const slugFormatado = texto
@@ -148,8 +187,7 @@ export default function CriarLoja() {
       return;
     }
 
-    // VALIDAÇÃO DOS TERMOS
-    if (!aceitouTermos) {
+    if (!lojaExistente && !aceitouTermos) {
       alert('⚠️ Você precisa aceitar os Termos de Uso e a Política de Privacidade para criar sua loja.');
       return;
     }
@@ -166,12 +204,17 @@ export default function CriarLoja() {
         return;
       }
 
-      const galeriaFinal = galeria.slice(0, limiteFotos);
+      const galeriaFinal = galeria.slice(0, limiteFotos).filter(f => f);
+
+      const statusPagamento = lojaExistente ? lojaExistente.statusPagamento : 'pendente';
+      const validadePlano = lojaExistente ? lojaExistente.validadePlano : null;
+      const dataCriacao = lojaExistente ? lojaExistente.criadoEm : new Date();
 
       await setDoc(doc(db, "barbearias", usuario.uid), {
         nome: nomeLoja,
         slug: slug,
         fotoUrl: fotoUrl,
+        fotoCapa: fotoCapa,
         nicho: nicho,
         endereco: endereco,
         instagram: instagram,
@@ -187,43 +230,48 @@ export default function CriarLoja() {
         almocoFim: almocoFim,
         corPrincipal: corPrincipal,
         plano: planoEscolhido,
-        statusPagamento: 'pendente',
+        statusPagamento: statusPagamento,
+        validadePlano: validadePlano,
         donoId: usuario.uid,
         donoEmail: usuario.email,
-        criadoEm: new Date(),
+        criadoEm: dataCriacao,
         prazoCancelamento: Number(prazoCancelamento),
         taxaCancelamento: Number(taxaCancelamento),
-        // SALVANDO OS DADOS DE CONSENTIMENTO
         aceitouTermos: true,
         aceitaMarketing: aceitaMarketing,
-        dataAceiteTermos: new Date()
+        dataAceiteTermos: lojaExistente?.dataAceiteTermos || new Date()
       });
 
-      const servicosPadrao = {
-        barbearia: [ { nome: 'Corte Clássico', duracao: 30, preco: 60 }, { nome: 'Corte + Barba', duracao: 60, preco: 100 } ],
-        manicure: [ { nome: 'Manicure Simples', duracao: 40, preco: 40 }, { nome: 'Pedicure', duracao: 40, preco: 40 } ],
-        tatuador: [ { nome: 'Sessão Pequena', duracao: 60, preco: 200 }, { nome: 'Sessão Média', duracao: 120, preco: 400 } ],
-        estetica: [ { nome: 'Limpeza de Pele', duracao: 60, preco: 120 } ],
-        pet: [ { nome: 'Banho Pequeno Porte', duracao: 60, preco: 60 } ]
-      };
+      if (!lojaExistente) {
+        const servicosPadrao = {
+          barbearia: [ { nome: 'Corte Clássico', duracao: 30, preco: 60 }, { nome: 'Corte + Barba', duracao: 60, preco: 100 } ],
+          manicure: [ { nome: 'Manicure Simples', duracao: 40, preco: 40 }, { nome: 'Pedicure', duracao: 40, preco: 40 } ],
+          tatuador: [ { nome: 'Sessão Pequena', duracao: 60, preco: 200 }, { nome: 'Sessão Média', duracao: 120, preco: 400 } ],
+          estetica: [ { nome: 'Limpeza de Pele', duracao: 60, preco: 120 } ],
+          pet: [ { nome: 'Banho Pequeno Porte', duracao: 60, preco: 60 } ]
+        };
 
-      const servicosParaCriar = servicosPadrao[nicho] || servicosPadrao.barbearia;
-      
-      for (const servico of servicosParaCriar) {
-        await addDoc(collection(db, "servicos"), {
-          barbeiroId: usuario.uid,
-          nome: servico.nome,
-          duracao: servico.duracao,
-          preco: servico.preco
-        });
+        const servicosParaCriar = servicosPadrao[nicho] || servicosPadrao.barbearia;
+        
+        for (const servico of servicosParaCriar) {
+          await addDoc(collection(db, "servicos"), {
+            barbeiroId: usuario.uid,
+            nome: servico.nome,
+            duracao: servico.duracao,
+            preco: servico.preco
+          });
+        }
+
+        alert(`✅ Loja criada com sucesso!\n\nSeu link é: quero1horario.com.br/${slug}`);
+        navigate('/checkout'); 
+      } else {
+        alert("✅ Dados da loja atualizados com sucesso!");
+        navigate('/painel');
       }
-
-      alert(`✅ Loja salva com sucesso!\n\nSeu link é: quero1horario.com.br/${slug}`);
-      navigate('/checkout'); 
       
     } catch (error) {
       console.error("Erro ao salvar:", error);
-      alert("Erro ao criar a loja. Tente novamente.");
+      alert("Erro ao salvar a loja. Tente novamente.");
     } finally {
       setSalvando(false);
     }
@@ -244,8 +292,8 @@ export default function CriarLoja() {
       <div className="criar-loja-card card" style={{ maxWidth: '700px' }}>
         <div className="header-logo">
           <Store size={32} color={corPrincipal} />
-          <h2>Meu Negócio</h2>
-          <p>Configure os dados da sua loja para gerar seu link exclusivo.</p>
+          <h2>{lojaExistente ? 'Editar Meu Negócio' : 'Meu Negócio'}</h2>
+          <p>{lojaExistente ? 'Atualize os dados da sua loja.' : 'Configure os dados da sua loja para gerar seu link exclusivo.'}</p>
         </div>
 
         <form onSubmit={salvarLoja}>
@@ -339,12 +387,87 @@ export default function CriarLoja() {
             </div>
           </div>
 
+          {/* FOTO DE CAPA COM UPLOAD */}
+          <div className="input-group">
+            <label><Image size={14} /> Foto de Capa (Banner)</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '8px' }}>
+              {fotoCapa && (
+                <img src={fotoCapa} alt="Capa" style={{ width: '100px', height: '60px', objectFit: 'cover', borderRadius: '8px' }} />
+              )}
+              <label className="btn-outline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', fontSize: '14px', margin: 0 }}>
+                <UploadCloud size={18} /> {enviandoImagem ? 'Enviando...' : 'Escolher Foto'}
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const url = await uploadImagem(file);
+                      if (url) setFotoCapa(url);
+                    }
+                  }} 
+                  style={{ display: 'none' }} 
+                />
+              </label>
+            </div>
+            <span style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px', display: 'block' }}>Essa foto aparece no topo da página.</span>
+          </div>
+
+          {/* FOTO DE PERFIL COM UPLOAD */}
+          <div className="input-group">
+            <label><Camera size={14} /> Foto de Perfil (Logo)</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '8px' }}>
+              {fotoUrl && (
+                <img src={fotoUrl} alt="Perfil" style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover' }} />
+              )}
+              <label className="btn-outline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', fontSize: '14px', margin: 0 }}>
+                <UploadCloud size={18} /> {enviandoImagem ? 'Enviando...' : 'Escolher Foto'}
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const url = await uploadImagem(file);
+                      if (url) setFotoUrl(url);
+                    }
+                  }} 
+                  style={{ display: 'none' }} 
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* GALERIA COM UPLOAD */}
           {limiteFotos > 0 && (
             <div className="input-group">
               <label><Image size={14} /> Galeria de Fotos ({limiteFotos} fotos)</label>
-              {galeria.slice(0, limiteFotos).map((foto, index) => (
-                <input key={index} type="url" value={foto} onChange={e => atualizarGaleria(index, e.target.value)} placeholder={`Foto ${index + 1} (https://...)`} style={{ marginBottom: '8px' }} />
-              ))}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '8px' }}>
+                {galeria.slice(0, limiteFotos).map((foto, index) => (
+                  <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+                    {foto ? (
+                      <img src={foto} alt={`Galeria ${index}`} style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '8px' }} />
+                    ) : (
+                      <div style={{ width: '100%', height: '80px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: 'var(--muted)' }}>Vazio</div>
+                    )}
+                    <label className="btn-outline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px', fontSize: '12px', width: '100%', margin: 0 }}>
+                      <UploadCloud size={14} /> Escolher
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const url = await uploadImagem(file);
+                            if (url) atualizarGaleria(index, url);
+                          }
+                        }} 
+                        style={{ display: 'none' }} 
+                      />
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -366,40 +489,25 @@ export default function CriarLoja() {
             </div>
           )}
 
-          <div className="input-group">
-            <label><Camera size={14} /> URL da Foto de Perfil (Opcional)</label>
-            <input type="url" value={fotoUrl} onChange={e => setFotoUrl(e.target.value)} placeholder="https://..." />
-          </div>
+          {!lojaExistente && (
+            <div style={{ marginTop: '24px', marginBottom: '24px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', marginBottom: '12px' }}>
+                <input type="checkbox" checked={aceitouTermos} onChange={e => setAceitouTermos(e.target.checked)} style={{ marginTop: '4px', width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
+                <span style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: '1.5' }}>
+                  Li e aceito os <a href="/termos" target="_blank" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Termos de Uso</a> e a <a href="/termos" target="_blank" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Política de Privacidade</a>.
+                </span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={aceitaMarketing} onChange={e => setAceitaMarketing(e.target.checked)} style={{ marginTop: '4px', width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
+                <span style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: '1.5' }}>
+                  Desejo receber novidades, dicas e promoções por e-mail.
+                </span>
+              </label>
+            </div>
+          )}
 
-          {/* NOVO BLOCO: TERMOS E MARKETING */}
-          <div style={{ marginTop: '24px', marginBottom: '24px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', marginBottom: '12px' }}>
-              <input 
-                type="checkbox" 
-                checked={aceitouTermos} 
-                onChange={e => setAceitouTermos(e.target.checked)}
-                style={{ marginTop: '4px', width: '18px', height: '18px', accentColor: 'var(--primary)' }}
-              />
-              <span style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: '1.5' }}>
-                Li e aceito os <a href="/termos" target="_blank" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Termos de Uso</a> e a <a href="/termos" target="_blank" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Política de Privacidade</a>.
-              </span>
-            </label>
-
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
-              <input 
-                type="checkbox" 
-                checked={aceitaMarketing} 
-                onChange={e => setAceitaMarketing(e.target.checked)}
-                style={{ marginTop: '4px', width: '18px', height: '18px', accentColor: 'var(--primary)' }}
-              />
-              <span style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: '1.5' }}>
-                Desejo receber novidades, dicas e promoções por e-mail.
-              </span>
-            </label>
-          </div>
-
-          <button type="submit" className="btn-primary full" disabled={salvando}>
-            {salvando ? 'Salvando...' : 'Salvar Loja e Gerar Link'}
+          <button type="submit" className="btn-primary full" disabled={salvando || enviandoImagem}>
+            {salvando ? 'Salvando...' : (lojaExistente ? 'Salvar Alterações' : 'Salvar Loja e Gerar Link')}
           </button>
         </form>
       </div>

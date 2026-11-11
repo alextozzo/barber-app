@@ -1,8 +1,11 @@
+/* ===== ESTRUTURA PRINCIPAL ===== */
 .dashboard-container {
   display: flex;
   min-height: 100vh;
   background: var(--bg-primary);
 }
+
+/* ===== SIDEBAR (BARRA LATERAL) ===== */
 .sidebar {
   width: 250px;
   background: var(--bg-secondary);
@@ -10,14 +13,32 @@
   padding: 24px;
   display: flex;
   flex-direction: column;
+  position: sticky; /* Gruda no topo ao rolar */
+  top: 0;
+  height: 100vh;
+  flex-shrink: 0;
+  z-index: 100;
 }
+
 .sidebar-logo {
   font-family: 'Playfair Display', serif;
   font-size: 20px;
   color: var(--gold);
   margin-bottom: 40px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
 .sidebar nav a {
   display: flex;
   align-items: center;
@@ -26,13 +47,16 @@
   text-decoration: none;
   padding: 12px;
   border-radius: 6px;
-  margin-bottom: 8px;
   transition: all 0.2s;
+  font-size: 14px;
 }
-.sidebar nav a:hover, .sidebar nav a.active {
+
+.sidebar nav a:hover, 
+.sidebar nav a.active {
   background: rgba(201, 169, 97, 0.1);
   color: var(--gold);
 }
+
 .logout-btn {
   margin-top: auto;
   display: flex;
@@ -40,8 +64,74 @@
   justify-content: center;
   gap: 8px;
 }
+
+/* ===== CONTEÚDO PRINCIPAL ===== */
 .dashboard-content {
   flex: 1;
   padding: 40px;
-  overflow-y: auto;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* ===== BOTÃO HAMBÚRGUER (ESCONDIDO NO DESKTOP) ===== */
+.menu-mobile-btn {
+  display: none;
+}
+
+.menu-overlay {
+  display: none;
+}
+
+/* ===== RESPONSIVO (CELULAR) ===== */
+@media (max-width: 768px) {
+  /* Mostra o botão hambúrguer */
+  .menu-mobile-btn {
+    display: flex;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: var(--bg-secondary);
+    color: var(--primary);
+    border: 1px solid var(--border);
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  /* Fundo escuro quando o menu abre */
+  .menu-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.5);
+    z-index: 998;
+  }
+
+  /* Esconde a sidebar para fora da tela */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -280px; /* Escondida */
+    width: 260px;
+    height: 100vh;
+    z-index: 999;
+    transition: left 0.3s ease;
+    box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+  }
+
+  /* Quando a classe 'open' é adicionada, mostra a sidebar */
+  .sidebar.open {
+    left: 0;
+  }
+
+  /* Ajusta o conteúdo para não ficar atrás do botão */
+  .dashboard-content {
+    padding: 70px 16px 20px 16px;
+    width: 100%;
+  }
 }

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, Calendar, Users, Briefcase, Award, CreditCard, Store, BarChart2 } from 'lucide-react';
+import { LogOut, Calendar, Users, Briefcase, Award, CreditCard, Store, BarChart2, Menu, X, ExternalLink, Settings } from 'lucide-react'; // Adicionei Settings
 import { db, auth } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import './Layout.css';
 
@@ -10,34 +10,39 @@ export default function Layout() {
   const location = useLocation(); 
   const navigate = useNavigate();
   const [carregando, setCarregando] = useState(true);
+  const [menuAberto, setMenuAberto] = useState(false);
+  const [slugLoja, setSlugLoja] = useState('');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let unsubscribeLoja = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (!user) {
         navigate('/'); 
         return;
       }
 
-      try {
-        const docRef = doc(db, "barbearias", user.uid);
-        const docSnap = await getDoc(docRef);
-
+      const docRef = doc(db, "barbearias", user.uid);
+      unsubscribeLoja = onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
           const dadosLoja = docSnap.data();
           
-          // 1. Verifica se o pagamento está pendente de aprovação
+          if (dadosLoja.slug) {
+            setSlugLoja(dadosLoja.slug);
+          }
+
           if (dadosLoja.statusPagamento === 'pendente_aprovacao') {
             alert("⏳ Seu pagamento está em análise.\n\nAguarde a liberação do administrador.");
             navigate('/planos');
-            return; // Para a execução aqui
+            setCarregando(false);
+            return;
           }
 
-          // 2. Verifica se a loja está ativa e tem validade
           if (dadosLoja.statusPagamento === 'ativo' || dadosLoja.statusPagamento === 'aprovado') {
             if (!dadosLoja.validadePlano) {
-              // Ativo mas sem data de validade (erro de cadastro, bloqueia)
               alert("⚠️ Sua assinatura não possui validade definida. Entre em contato com o suporte.");
               navigate('/planos');
+              setCarregando(false);
               return;
             }
 
@@ -45,40 +50,49 @@ export default function Layout() {
             const validade = new Date(dadosLoja.validadePlano);
 
             if (validade < hoje) {
-              // Assinatura venceu!
               alert("⚠️ Sua assinatura expirou!\n\nPor favor, renove seu plano para continuar usando o sistema.");
               navigate('/planos'); 
+              setCarregando(false);
               return;
             }
           } else {
-            // Qualquer outro status (ex: 'pendente', 'bloqueado') bloqueia o acesso
             alert("⚠️ Sua loja não está ativa. Por favor, regularize sua assinatura.");
             navigate('/planos');
+            setCarregando(false);
             return;
           }
         } else {
-          // Se não encontrar a loja, manda para criar
           navigate('/criar-loja');
+          setCarregando(false);
           return;
         }
-      } catch (error) {
-        console.error("Erro ao verificar validade:", error);
-      } finally {
         setCarregando(false);
-      }
+      });
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeLoja) unsubscribeLoja();
+    };
   }, [navigate]);
 
-  // Enquanto verifica, mostra uma tela de loading
+  useEffect(() => {
+    setMenuAberto(false);
+  }, [location.pathname]);
+
   if (carregando) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--primary)' }}>Verificando acesso...</div>;
   }
 
   return (
     <div className="dashboard-container">
-      <aside className="sidebar">
+      <button className="menu-mobile-btn" onClick={() => setMenuAberto(!menuAberto)}>
+        {menuAberto ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {menuAberto && <div className="menu-overlay" onClick={() => setMenuAberto(false)}></div>}
+
+      <aside className={`sidebar ${menuAberto ? 'open' : ''}`}>
         <div className="sidebar-logo">
           <Store size={20} color="var(--primary)" style={{ marginBottom: '8px' }} />
           <span>Quero1<em>Horario</em></span>
@@ -104,6 +118,23 @@ export default function Layout() {
           <Link to="/financeiro" className={location.pathname === '/financeiro' ? 'active' : ''}>
             <BarChart2 size={18} /> Financeiro
           </Link>
+
+          {/* NOVO BOTÃO: MEU NEGÓCIO (ALTERAR FOTOS/DADOS) */}
+          <Link to="/criar-loja" className={location.pathname === '/criar-loja' ? 'active' : ''}>
+            <Settings size={18} /> Meu Negócio
+          </Link>
+
+          {/* BOTÃO: VER MINHA LOJA (ABRE EM OUTRA ABA) */}
+          {slugLoja && (
+            <a 
+              href={`/${slugLoja}`} 
+              target="_blank" 
+              rel="noreferrer"
+              style={{ color: 'var(--primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}
+            >
+              <ExternalLink size={18} /> Ver Minha Loja
+            </a>
+          )}
 
           <a href="#"><Users size={18} /> Clientes</a>
         </nav>

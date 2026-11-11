@@ -11,15 +11,12 @@ export default function Checkout() {
   const [loja, setLoja] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [usuario, setUsuario] = useState(undefined);
-  
-  // Estados novos para o Timer
   const [tempoRestante, setTempoRestante] = useState(30 * 60); 
   const [pagamentoIniciado, setPagamentoIniciado] = useState(false);
   
   const navigate = useNavigate();
   const location = useLocation(); 
 
-  // LINKS DO MERCADO PAGO
   const LINKS_MERCADO_PAGO = {
     basico: 'https://mpago.la/2nmH9UF',
     pro: 'https://mpago.la/182JXdi',
@@ -46,8 +43,21 @@ export default function Checkout() {
       try {
         const docRef = doc(db, "barbearias", usuario.uid);
         const docSnap = await getDoc(docRef);
+        
         if (docSnap.exists()) {
-          setLoja(docSnap.data());
+          const dadosLoja = docSnap.data();
+          setLoja(dadosLoja);
+
+          // SE O CLIENTE JÁ ESTIVER ATIVO, MANDA DIRETO PARA O PAINEL
+          if (dadosLoja.statusPagamento === 'ativo' || dadosLoja.statusPagamento === 'aprovado') {
+            const hoje = new Date();
+            const validade = dadosLoja.validadePlano ? new Date(dadosLoja.validadePlano) : null;
+            
+            if (validade && validade > hoje) {
+              navigate('/painel');
+              return;
+            }
+          }
         }
       } catch (error) {
         console.error("Erro ao buscar loja:", error);
@@ -56,9 +66,9 @@ export default function Checkout() {
       }
     }
     fetchDados();
-  }, [usuario]);
+  }, [usuario, navigate]);
 
-  // VERIFICA SE VOLTOU DO MERCADO PAGO COM SUCESSO
+  // VERIFICA SE O USUÁRIO VOLTOU DO MERCADO PAGO COM SUCESSO
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const status = params.get('status');
@@ -72,14 +82,13 @@ export default function Checkout() {
     try {
       const docRef = doc(db, "barbearias", usuario.uid);
       
-      // Calcula a data de validade (30 dias a partir de hoje)
       const dataValidade = new Date();
       dataValidade.setDate(dataValidade.getDate() + 30);
 
       await updateDoc(docRef, {
         plano: plano,
-        statusPagamento: 'aprovado',
-        validadePlano: dataValidade.toISOString() // Salva a data exata
+        statusPagamento: 'ativo',
+        validadePlano: dataValidade.toISOString()
       });
 
       alert("🎉 Pagamento confirmado! Seu painel foi liberado por 30 dias.");
@@ -115,7 +124,6 @@ export default function Checkout() {
     window.open(LINKS_MERCADO_PAGO[plano], '_blank');
   }
 
-  // Envia para o admin aprovar (Plano B)
   async function enviarParaAprovacao() {
     if (!usuario) return;
     try {
